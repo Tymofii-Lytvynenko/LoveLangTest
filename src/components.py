@@ -114,8 +114,9 @@ class RelationalNeedsComponent:
 
 @dataclass
 class ProfessionalComponent:
-    primary_type: HollandCode = HollandCode.REALISTIC
-    secondary_type: HollandCode = HollandCode.INVESTIGATIVE
+    primary_type: HollandCode = HollandCode.INVESTIGATIVE
+    secondary_type: HollandCode = HollandCode.ARTISTIC
+    tertiary_type: HollandCode = HollandCode.REALISTIC # <--- Додаємо третій тип
     career_centrality: float = 0.5
     
     def get_interaction_style(self) -> str:
@@ -127,4 +128,5 @@ class ProfessionalComponent:
             HollandCode.ENTERPRISING: "Стосунки як проєкт. Стратегічне планування.",
             HollandCode.CONVENTIONAL: "Ритуали та стабільність. Домовленості — це святе."
         }
+        # Можна повертати комбінований опис, але поки залишимо за домінантою
         return style_map.get(self.primary_type, "")

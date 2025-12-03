@@ -149,13 +149,44 @@ def render_professional_compass() -> ProfessionalComponent:
     st.markdown(PROFESSIONAL_EXPLANATIONS["intro"])
     st.info(PROFESSIONAL_EXPLANATIONS["impact_warning"])
     
-    col1, col2 = st.columns(2)
+    # Використовуємо 3 колонки
+    col1, col2, col3 = st.columns(3)
+    
+    # 1. Primary
     with col1:
-        primary = st.selectbox("Оберіть домінуючий тип:", [x for x in HollandCode], format_func=lambda x: x.value, key="prof_prim")
+        st.subheader("1️⃣ Домінанта")
+        primary = st.selectbox(
+            "Основний фокус:", 
+            [x for x in HollandCode], 
+            format_func=lambda x: x.value,
+            key="prof_prim"
+        )
+        
+    # 2. Secondary (виключаємо Primary)
     with col2:
-        secondary = st.selectbox("Оберіть вторинний тип:", [x for x in HollandCode if x != primary], format_func=lambda x: x.value, key="prof_sec")
+        st.subheader("2️⃣ Допоміжний")
+        secondary = st.selectbox(
+            "Додатковий фокус:", 
+            [x for x in HollandCode if x != primary], 
+            format_func=lambda x: x.value,
+            key="prof_sec"
+        )
+
+    # 3. Tertiary (виключаємо Primary та Secondary)
+    with col3:
+        st.subheader("3️⃣ Третинний")
+        tertiary = st.selectbox(
+            "Ситуативний фокус:", 
+            [x for x in HollandCode if x not in (primary, secondary)], 
+            format_func=lambda x: x.value,
+            key="prof_tert"
+        )
 
     st.markdown("---")
     st.subheader("⚖️ Баланс Work-Life")
-    career_val = st.slider("Наскільки кар'єра центральна?", 0, 100, 50) / 100.0
-    return ProfessionalComponent(primary, secondary, career_val)
+    career_val = st.slider("Наскільки кар'єра є центральною частиною особистості?", 0, 100, 50) / 100.0
+    
+    if career_val > 0.8:
+        st.warning("⚠️ Високий ризик дефіциту часу для партнера (Low Resource Availability).")
+
+    return ProfessionalComponent(primary, secondary, tertiary, career_val)
