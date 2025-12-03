@@ -149,38 +149,56 @@ def render_professional_compass() -> ProfessionalComponent:
     st.markdown(PROFESSIONAL_EXPLANATIONS["intro"])
     st.info(PROFESSIONAL_EXPLANATIONS["impact_warning"])
     
-    # Використовуємо 3 колонки
     col1, col2, col3 = st.columns(3)
     
+    # Повний список опцій для всіх (без фільтрації, щоб уникнути багів UI)
+    all_codes = [x for x in HollandCode]
+
     # 1. Primary
     with col1:
         st.subheader("1️⃣ Домінанта")
         primary = st.selectbox(
             "Основний фокус:", 
-            [x for x in HollandCode], 
+            all_codes, 
             format_func=lambda x: x.value,
-            key="prof_prim"
+            key="prof_prim",
+            index=0 # R
         )
         
-    # 2. Secondary (виключаємо Primary)
+    # 2. Secondary
     with col2:
         st.subheader("2️⃣ Допоміжний")
         secondary = st.selectbox(
             "Додатковий фокус:", 
-            [x for x in HollandCode if x != primary], 
+            all_codes, 
             format_func=lambda x: x.value,
-            key="prof_sec"
+            key="prof_sec",
+            index=1 # I
         )
 
-    # 3. Tertiary (виключаємо Primary та Secondary)
+    # 3. Tertiary
     with col3:
         st.subheader("3️⃣ Третинний")
         tertiary = st.selectbox(
             "Ситуативний фокус:", 
-            [x for x in HollandCode if x not in (primary, secondary)], 
+            all_codes, 
             format_func=lambda x: x.value,
-            key="prof_tert"
+            key="prof_tert",
+            index=2 # A
         )
+
+    # ВАЛІДАЦІЯ: Перевіряємо дублікати і показуємо попередження
+    errors = []
+    if primary == secondary:
+        errors.append("⚠️ 'Допоміжний' тип збігається з 'Домінантою'. Оберіть інший.")
+    if secondary == tertiary:
+        errors.append("⚠️ 'Третинний' тип збігається з 'Допоміжним'. Оберіть інший.")
+    if primary == tertiary:
+        errors.append("⚠️ 'Третинний' тип збігається з 'Домінантою'. Оберіть інший.")
+        
+    if errors:
+        for err in set(errors): # set прибирає дублікати повідомлень
+            st.error(err)
 
     st.markdown("---")
     st.subheader("⚖️ Баланс Work-Life")
