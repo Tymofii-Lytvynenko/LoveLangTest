@@ -29,24 +29,17 @@ class PsychometricsComponent:
 
 @dataclass
 class ShadowComponent:
-    # --- ВИПРАВЛЕНО: Додані значення за замовчуванням ---
     attachment_style: AttachmentStyle = AttachmentStyle.SECURE
     conflict_response: ConflictResponse = ConflictResponse.FLIGHT
     regulation_method: RegulationMethod = RegulationMethod.AUTO_REGULATION
     
-    # Поля для результатів тесту
     secure_score: float = 0.0
     anxious_score: float = 0.0
     avoidant_score: float = 0.0
 
     def calculate_from_quiz(self, scores: tuple):
-        """
-        scores: (sum_secure, sum_anxious, sum_avoidant)
-        """
         self.secure_score, self.anxious_score, self.avoidant_score = scores
-        
         mx = max(scores)
-        # Проста логіка визначення типу за максимумом балів
         if mx == self.anxious_score:
             self.attachment_style = AttachmentStyle.ANXIOUS
             self.conflict_response = ConflictResponse.FIGHT
@@ -62,7 +55,6 @@ class ShadowComponent:
 
 @dataclass
 class ErosComponent:
-    # --- ВИПРАВЛЕНО: Додані значення за замовчуванням ---
     accelerator: float = 0.5
     brake: float = 0.5
     context_dependency: ContextDependency = ContextDependency.LOW
@@ -100,23 +92,27 @@ class RelationalNeedsComponent:
         # 2. RESOURCE
         dysfunction_penalty = (1.0 - psycho.conscientiousness)
         if psycho.has_adhd: dysfunction_penalty += 0.25
-        self.adjusted_resource = max(self.raw_resource, min(dysfunction_penalty, 1.0))
+        # Тут теж краще перестрахуватися min(..., 1.0)
+        self.adjusted_resource = min(max(self.raw_resource, min(dysfunction_penalty, 1.0)), 1.0)
 
         # 3. RESONANCE
         cognitive_floor = 0.0
         if psycho.openness > 0.75: cognitive_floor = 0.8
-        self.adjusted_resonance = max(self.raw_resonance, cognitive_floor)
+        self.adjusted_resonance = min(max(self.raw_resonance, cognitive_floor), 1.0)
 
-        # 4. EXPANSION
+        # 4. EXPANSION (Тут була помилка)
         expansion_driver = (psycho.extraversion + psycho.openness) / 2
         if psycho.has_adhd: expansion_driver += 0.15
-        self.adjusted_expansion = (self.raw_expansion + expansion_driver) / 2
+        
+        val = (self.raw_expansion + expansion_driver) / 2
+        # --- ВИПРАВЛЕННЯ: Обрізаємо значення до 1.0 ---
+        self.adjusted_expansion = min(val, 1.0)
 
 @dataclass
 class ProfessionalComponent:
-    primary_type: HollandCode = HollandCode.INVESTIGATIVE
-    secondary_type: HollandCode = HollandCode.ARTISTIC
-    tertiary_type: HollandCode = HollandCode.REALISTIC # <--- Додаємо третій тип
+    primary_type: HollandCode = HollandCode.REALISTIC
+    secondary_type: HollandCode = HollandCode.INVESTIGATIVE
+    tertiary_type: HollandCode = HollandCode.ARTISTIC
     career_centrality: float = 0.5
     
     def get_interaction_style(self) -> str:
@@ -128,5 +124,4 @@ class ProfessionalComponent:
             HollandCode.ENTERPRISING: "Стосунки як проєкт. Стратегічне планування.",
             HollandCode.CONVENTIONAL: "Ритуали та стабільність. Домовленості — це святе."
         }
-        # Можна повертати комбінований опис, але поки залишимо за домінантою
         return style_map.get(self.primary_type, "")
