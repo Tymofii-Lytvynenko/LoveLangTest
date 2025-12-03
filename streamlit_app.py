@@ -4,7 +4,8 @@ from src.ui import (
     render_big_five_manual, 
     render_shadow_form, 
     render_eros_form, 
-    render_scenarios_engine
+    render_scenarios_engine,
+    render_professional_compass  # <--- 1. Додаємо імпорт
 )
 
 def main():
@@ -26,17 +27,23 @@ def main():
         
         # 4. Context Layer (Data Collection)
         needs = render_scenarios_engine()
+        st.divider()
+
+        # 5. Professional Layer
+        # <--- 2. Додаємо відображення компонента у формі
+        prof = render_professional_compass()
         
+        st.markdown("---")
         submit = st.form_submit_button("📊 Розрахувати архітектуру", type="primary")
 
     if submit:
-        # Composition: Збираємо профіль
-        user = UserProfile("User", psycho, shadow, eros, needs)
+        # <--- 3. Передаємо 'prof' у конструктор UserProfile
+        user = UserProfile("User", psycho, shadow, eros, needs, prof)
         
-        # Calculation: Запускаємо алгоритм нормалізації через взаємодію компонентів
+        # Calculation
         user.needs.calculate_adjustments(user.psychometrics)
         
-        # Output: Генерація звіту
+        # Output
         manual = user.generate_manual()
         
         # Display Results
@@ -56,6 +63,12 @@ def main():
             st.subheader("Операційні примітки")
             st.warning(manual['shadow_warning'])
             st.info(f"**Eros Profile:** {manual['erotic_key']}")
+            
+            # <--- 4. Додаємо вивід результатів по роботі
+            st.info(f"**Professional Style:** {manual['professional_key']}")
+            st.caption(f"Strategy: {manual['interaction_style']}")
+            if manual['resource_warning']:
+                st.error(manual['resource_warning'])
 
 if __name__ == "__main__":
     main()
