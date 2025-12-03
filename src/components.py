@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
-from .enums import AttachmentStyle, ConflictResponse, RegulationMethod, ContextDependency
+from .enums import AttachmentStyle, ConflictResponse, RegulationMethod, ContextDependency, HollandCode
 
 @dataclass
 class PsychometricsComponent:
@@ -92,3 +92,21 @@ class RelationalNeedsComponent:
             expansion_driver += 0.15
             
         self.adjusted_expansion = (self.raw_expansion + expansion_driver) / 2
+
+@dataclass
+class ProfessionalComponent:
+    primary_type: HollandCode = HollandCode.REALISTIC
+    secondary_type: HollandCode = HollandCode.INVESTIGATIVE # Часто люди мають суміжний тип (напр. R+I)
+    career_centrality: float = 0.5  # 0.0 = "працюю, щоб жити", 1.0 = "живу, щоб працювати" (Workaholism)
+    
+    def get_interaction_style(self) -> str:
+        """Повертає короткий опис стилю взаємодії на основі типу."""
+        style_map = {
+            HollandCode.REALISTIC: "Дія замість слів. 'Я полагодив тобі кран' = 'Я тебе люблю'.",
+            HollandCode.INVESTIGATIVE: "Аналіз замість емоцій. Потребує інтелектуального спарингу.",
+            HollandCode.ARTISTIC: "Емоційні гойдалки та спонтанність. Рутина вбиває.",
+            HollandCode.SOCIAL: "Гіпер-комунікація. Потребує постійного обговорення почуттів.",
+            HollandCode.ENTERPRISING: "Стосунки як проєкт. Стратегічне планування майбутнього.",
+            HollandCode.CONVENTIONAL: "Ритуали та стабільність. 'Ми домовилися' — це святе."
+        }
+        return style_map.get(self.primary_type, "")

@@ -2,6 +2,9 @@ import streamlit as st
 from .components import PsychometricsComponent, ShadowComponent, ErosComponent, RelationalNeedsComponent
 from .enums import AttachmentStyle, ConflictResponse, RegulationMethod, ContextDependency
 from .data import EXPLANATIONS, get_scenarios
+from .enums import HollandCode
+from .components import ProfessionalComponent
+from .data import PROFESSIONAL_EXPLANATIONS
 
 def render_info_box(title: str, text: str):
     """Helper to render scientific explanations cleanly."""
@@ -115,3 +118,43 @@ def render_scenarios_engine() -> RelationalNeedsComponent:
         raw_resonance=norm(m_acc),
         raw_expansion=norm(e_acc)
     )
+
+def render_professional_compass() -> ProfessionalComponent:
+    st.header("5. Professional Layer (Компас Діяльності)")
+    st.markdown(PROFESSIONAL_EXPLANATIONS["intro"])
+    st.info(PROFESSIONAL_EXPLANATIONS["impact_warning"])
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("🧭 Основний вектор")
+        st.caption("Чим ви займаєтесь 80% часу?")
+        primary = st.selectbox(
+            "Оберіть домінуючий тип:", 
+            [x for x in HollandCode], 
+            format_func=lambda x: x.value,
+            key="prof_prim"
+        )
+        
+    with col2:
+        st.subheader("Стиль")
+        st.caption("Додатковий фокус (наприклад, Програміст (I) + Тімлід (E))")
+        secondary = st.selectbox(
+            "Оберіть вторинний тип:", 
+            [x for x in HollandCode if x != primary], # Виключаємо вже обраний
+            format_func=lambda x: x.value,
+            key="prof_sec"
+        )
+
+    st.markdown("---")
+    st.subheader("⚖️ Баланс Work-Life")
+    career_val = st.slider(
+        "Наскільки кар'єра є центральною частиною вашої особистості?",
+        min_value=0, max_value=100, value=50,
+        help="0 = Робота тільки заради грошей. 100 = Робота — це моя місія і сенс життя."
+    ) / 100.0
+    
+    if career_val > 0.8:
+        st.warning("⚠️ Високий ризик дефіциту часу для партнера (Low Resource Availability).")
+
+    return ProfessionalComponent(primary, secondary, career_val)
