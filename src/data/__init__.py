@@ -2,7 +2,7 @@
 # Це "Фасад", який збирає все з підфайлів
 
 from .bigfive import EXPLANATIONS
-from .needs import get_scenarios
+from .needs import get_scenarios, get_max_possible_scores
 from .shadow import get_shadow_quiz, SHADOW_EXPLANATIONS
 from .eros import get_eros_quiz, EROS_EXPLANATIONS, EROS_TAGS_EXPLANATIONS
 from .professional import PROFESSIONAL_EXPLANATIONS

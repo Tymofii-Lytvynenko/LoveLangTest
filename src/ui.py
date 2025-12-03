@@ -195,13 +195,14 @@ def render_scenarios_engine() -> RelationalNeedsComponent:
         e_acc += choice.weights[3]
         st.markdown("---")
 
-    def norm(val): return max(0.0, min(val / 2.0, 1.0))
-
+    # ВИДАЛЕНО: функцію norm(val) та штучні обмеження.
+    # Ми передаємо "сирі" накопичені бали прямо в компонент.
+    
     return RelationalNeedsComponent(
-        raw_safety=norm(s_acc),
-        raw_resource=norm(r_acc),
-        raw_resonance=norm(m_acc),
-        raw_expansion=norm(e_acc)
+        raw_safety=s_acc,
+        raw_resource=r_acc,
+        raw_resonance=m_acc,
+        raw_expansion=e_acc
     )
 
 def render_professional_compass() -> ProfessionalComponent:

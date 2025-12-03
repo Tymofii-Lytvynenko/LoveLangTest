@@ -290,3 +290,28 @@ def get_scenarios() -> list[Scenario]:
             ]
         )
     ]
+
+def get_max_possible_scores() -> tuple[float, float, float, float]:
+    """
+    Динамічно обчислює теоретичний максимум балів для кожної категорії.
+    Проходить по всіх питаннях і сумує максимальні ваги опцій.
+    Повертає: (Max_Safety, Max_Resource, Max_Resonance, Max_Expansion)
+    """
+    scenarios = get_scenarios()
+    max_s, max_r, max_m, max_e = 0.0, 0.0, 0.0, 0.0
+    
+    for sc in scenarios:
+        # Для кожного питання шукаємо "найжирнішу" відповідь у кожній категорії
+        # Наприклад, якщо в питанні є опції з Safety: 0.5, 0.0, 0.8 -> ми додаємо 0.8 до максимуму
+        # Це працює, бо в радіо-кнопках можна обрати лише одну опцію.
+        
+        # weights[0] - Safety
+        max_s += max(opt.weights[0] for opt in sc.options)
+        # weights[1] - Resource
+        max_r += max(opt.weights[1] for opt in sc.options)
+        # weights[2] - Resonance
+        max_m += max(opt.weights[2] for opt in sc.options)
+        # weights[3] - Expansion
+        max_e += max(opt.weights[3] for opt in sc.options)
+        
+    return max_s, max_r, max_m, max_e
