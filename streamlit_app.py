@@ -59,6 +59,20 @@ def main():
             for k, v in manual['scores'].items():
                 st.progress(v, text=f"{k}: {v*100:.1f}/100")
                 
+            st.write("---")
+            st.subheader("🎒 Що ви приносите у стосунки (Provision)")
+            st.caption("Розраховано на основі вашої психометрії та професійного стилю.")
+            
+            prov_cols = st.columns(4)
+            p_scores = manual['provision_scores']
+            
+            prov_cols[0].metric("Safety", f"{int(p_scores['Safety Provider (Надійність)']*100)}%")
+            prov_cols[1].metric("Resource", f"{int(p_scores['Resource Provider (Підтримка)']*100)}%")
+            prov_cols[2].metric("Resonance", f"{int(p_scores['Resonance Provider (Емпатія/Розуміння)']*100)}%")
+            prov_cols[3].metric("Expansion", f"{int(p_scores['Expansion Provider (Драйв/Натхнення)']*100)}%")
+            
+            st.success(f"💎 Ваша суперсила: **{manual['superpower'][0]}**")
+                
         with r2:
             st.subheader("Операційні примітки")
             st.warning(manual['shadow_warning'])

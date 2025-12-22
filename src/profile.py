@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from .analysis import ProvisionAnalyzer
 from typing import Dict
 
 from .components import (
@@ -23,6 +24,18 @@ class UserProfile:
         """
         Генерує фінальний звіт ("User Manual") на основі взаємодії всіх компонентів.
         """
+        
+        # --- НОВЕ: Розрахунок Provision (Що користувач ДАЄ) ---
+        provision = ProvisionAnalyzer.analyze(self.psychometrics, self.professional)
+        
+        provision_map = {
+            "Safety Provider (Надійність)": provision.safety_score,
+            "Resource Provider (Підтримка)": provision.resource_score,
+            "Resonance Provider (Емпатія/Розуміння)": provision.resonance_score,
+            "Expansion Provider (Драйв/Натхнення)": provision.expansion_score
+        }
+        # Знаходимо найсильнішу сторону
+        best_provision = max(provision_map.items(), key=lambda x: x[1])
         
         # 1. Сортування потреб (Needs)
         needs_map = {
@@ -75,5 +88,8 @@ class UserProfile:
             # Професійний профіль
             "professional_key": prof_key,
             "interaction_style": prof_style,
-            "resource_warning": resource_warning
+            "resource_warning": resource_warning,
+            
+            "provision_scores": provision_map,
+            "superpower": best_provision
         }
