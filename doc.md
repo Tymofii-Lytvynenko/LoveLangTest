@@ -45,7 +45,43 @@ The UserProfile entity is composed of the following modules:
 
 ### **3.2. Module B: RelationalNeedsComponent (The S.R.M.E. Model)**
 
-**Purpose:** Defines the core interaction style the user requires.
+**Theoretical Framework & Methodology:**
+
+The S.R.M.E. model functions as a **semantic abstraction layer** (Adapter Pattern) designed to interface complex psychological constructs with user-facing needs. It avoids pseudoscientific categorization by strictly mapping each dimension to established, empirically supported psychological theories.
+
+Each dimension serves as an aggregate container for specific biological and psychological drivers:
+
+#### **1. Safety (S) – The Foundation**
+* **Core Driver:** Affect Regulation, Anxiety Management, and Predictability.
+* **Scientific Basis:**
+    * **Attachment Theory (Bowlby/Ainsworth):** Corresponds directly to the concepts of "Safe Haven" and "Secure Base." It measures the user's dependency on the partner for emotional regulation.
+    * **Polyvagal Theory (Porges):** Addresses the biological need for a "Neuroception of Safety" to down-regulate the sympathetic nervous system (fight/flight response).
+* **System Role:** Acts as a blocking dependency. If *Safety* metrics are critical, access to *Resonance* and *Expansion* is psychologically inhibited.
+
+#### **2. Resource (R) – The Structure**
+* **Core Driver:** Instrumental Support, Executive Scaffolding, and Logistical Stability.
+* **Scientific Basis:**
+    * **Social Exchange Theory (Thibaut & Kelley):** Analyzes relationships through a cost-benefit framework, focusing on the exchange of tangible resources (time, labor, finance).
+    * **Evolutionary Psychology (Parental Investment):** Correlates with the instinctual drive to secure environmental stability and resource accumulation.
+* **System Role:** Quantifies the need for "Acts of Service" and external executive functioning (critical for High-Neuroticism or ADHD profiles).
+
+#### **3. Resonance (M) – The Connection**
+* **Core Driver:** Synchronization, Validation, and Intimacy.
+* **Scientific Basis:**
+    * **Self-Determination Theory (Ryan & Deci):** Maps to the intrinsic need for **Relatedness** (the universal want to interact, be connected to, and experience caring for others).
+    * **Limbic Resonance (Lewis, Amini, Lannon):** The capacity for sharing deep emotional states and non-verbal attunement.
+    * **Sternberg’s Triangular Theory of Love:** Corresponds to the "Intimacy" vertex (warmth, trust, and bonding).
+* **System Role:** Defines the required "bandwidth" and protocol for communication (Emotional vs. Cognitive synchronization).
+
+#### **4. Expansion (E) – The Growth**
+* **Core Driver:** Novelty, Autonomy, and Self-Actualization.
+* **Scientific Basis:**
+    * **Self-Expansion Model (Arthur Aron):** The desire to enter relationships to "expand the self" by acquiring the partner’s resources, perspectives, and identities.
+    * **Self-Determination Theory (Ryan & Deci):** Maps to the intrinsic need for **Autonomy** (volition) and growth.
+    * **Big Five Correlation:** Heavily driven by the *Openness to Experience* trait.
+* **System Role:** Drives the requirement for entropy reduction (fighting boredom) and personal development.
+
+**Purpose:** Defines the core interaction style the user requires based on the aggregated drivers above.
 
 **Dimensions:**
 
