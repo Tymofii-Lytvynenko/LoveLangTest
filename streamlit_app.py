@@ -1,7 +1,11 @@
 import streamlit as st
+import json
+from datetime import datetime
+
 from src.profile import UserProfile
 from src.services.adjustment import NeedsAdjustmentService
 from src.services.reporting import ReportGenerator
+from src.services.sanitizer import StateSanitizer
 
 # Імпорт UI компонентів
 from src.ui import (
@@ -12,47 +16,132 @@ from src.ui import (
     render_professional_compass
 )
 
+CURRENT_VERSION = "3.2"
+
+def handle_save_load():
+    """Логіка сайдбару для збереження/завантаження профілю"""
+    with st.sidebar:
+        st.header("💾 Управління даними")
+        
+        # 1. ЗАВАНТАЖЕННЯ (LOAD)
+        uploaded_file = st.file_uploader("📂 Завантажити профіль (JSON)", type="json")
+        if uploaded_file is not None:
+            try:
+                raw_data = json.load(uploaded_file)
+                
+                saved_context = raw_data.get("_context_snapshot", {})
+                incoming_state = raw_data.get("state", raw_data)
+                
+                # --- SANITIZATION ---
+                # Отримуємо чистий стан і список видаленого
+                clean_state, removal_log = StateSanitizer.sanitize(incoming_state, saved_context)
+                
+                # Застосування до сесії
+                changes_count = 0
+                for key, value in clean_state.items():
+                    if key in st.session_state:
+                         if st.session_state[key] != value:
+                            st.session_state[key] = value
+                            changes_count += 1
+                    else:
+                        st.session_state[key] = value
+                        changes_count += 1
+                
+                # --- WARNING BLOCK & FIX DOWNLOAD ---
+                if removal_log:
+                    st.warning(f"⚠️ Увага! Було скинуто {len(removal_log)} параметрів через невідповідність версій.")
+                    
+                    with st.expander("📝 Переглянути деталі змін"):
+                        for log_item in removal_log:
+                            st.write(f"- {log_item}")
+
+                    # Генеруємо "чистий" файл прямо тут
+                    cleaned_export = {
+                        "_meta": {
+                            "version": CURRENT_VERSION,
+                            "timestamp": datetime.now().isoformat(),
+                            "note": "Sanitized export"
+                        },
+                        "_context_snapshot": StateSanitizer.get_current_context_snapshot(),
+                        "state": clean_state
+                    }
+                    cleaned_json = json.dumps(cleaned_export, indent=4, ensure_ascii=False)
+                    
+                    st.download_button(
+                        label="🛠️ Завантажити виправлений файл",
+                        data=cleaned_json,
+                        file_name=f"crnas_sanitized_{datetime.now().strftime('%H%M')}.json",
+                        mime="application/json",
+                        help="Цей файл містить тільки валідні дані. Використовуйте його надалі."
+                    )
+                
+                if changes_count > 0:
+                    st.success(f"✅ Успішно завантажено (оновлено {changes_count} полів).")
+                    if st.button("🔄 Оновити інтерфейс"):
+                        st.rerun()
+                elif not removal_log:
+                    st.info("Дані повністю ідентичні поточним.")
+                    
+            except Exception as e:
+                st.error(f"Помилка обробки файлу: {e}")
+
+        st.divider()
+
+        # 2. ЗБЕРЕЖЕННЯ (SAVE)
+        current_state = {
+            k: v for k, v in st.session_state.items() 
+            if k.startswith(("psycho_", "facet_", "shadow_", "eros_", "scenario_", "prof_"))
+        }
+        
+        if current_state:
+            context_snapshot = StateSanitizer.get_current_context_snapshot()
+            
+            export_data = {
+                "_meta": {
+                    "version": CURRENT_VERSION,
+                    "timestamp": datetime.now().isoformat(),
+                },
+                "_context_snapshot": context_snapshot,
+                "state": current_state
+            }
+            
+            json_data = json.dumps(export_data, indent=4, ensure_ascii=False)
+            filename = f"crnas_profile_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+            
+            st.download_button(
+                "💾 Зберегти поточний профіль",
+                json_data,
+                filename,
+                "application/json",
+                type="primary"
+            )
+
 def main():
-    st.set_page_config(page_title="CRNAS v3.0 (DDD Refactor)", layout="wide", page_icon="🧬")
+    st.set_page_config(page_title="CRNAS v3.2", layout="wide", page_icon="🧬")
+    
+    handle_save_load()
+    
     st.title("🧬 CRNAS: Comprehensive Relationship Needs Analysis System")
     
     with st.form("main_form"):
-        # 1. Hardware Layer (Psychometrics 30-facet)
         psycho = render_big_five_manual()
         st.divider()
-        
-        # 2. Defense Layer
         shadow = render_shadow_form()
         st.divider()
-        
-        # 3. Sexual Layer
         eros = render_eros_form()
         st.divider()
-        
-        # 4. Context Layer (Needs Collection)
         raw_needs = render_scenarios_engine()
         st.divider()
-
-        # 5. Professional Layer
         prof = render_professional_compass()
-        
         st.markdown("---")
         submit = st.form_submit_button("📊 Розрахувати архітектуру", type="primary")
 
     if submit:
-        # A. Створення профілю з "сирими" даними
-        # Зверни увагу: raw_needs ще не скориговані
         user = UserProfile("User", psycho, shadow, eros, raw_needs, prof)
-        
-        # B. Виклик Сервісу Корекції (Adjustment Service)
-        # Це pure function: бере вхідні дані -> повертає нові скориговані потреби
         user.needs = NeedsAdjustmentService.adjust_needs(user.needs, user.psychometrics)
-        
-        # C. Виклик Сервісу Звітності (Reporting Service)
         manual = ReportGenerator.generate_manual(user)
         
-        # Display Results
-        st.success("Розрахунок завершено (v3.0 Logic Applied).")
+        st.success("Розрахунок завершено.")
         
         r1, r2 = st.columns(2)
         with r1:
@@ -66,13 +155,12 @@ def main():
                 
             st.write("---")
             st.subheader("🎒 Що ви приносите у стосунки (Provision)")
-            
-            prov_cols = st.columns(4)
             p_scores = manual['provision_scores']
-            prov_cols[0].metric("Safety", f"{int(p_scores['Safety Provider (Надійність)']*100)}%")
-            prov_cols[1].metric("Resource", f"{int(p_scores['Resource Provider (Підтримка)']*100)}%")
-            prov_cols[2].metric("Resonance", f"{int(p_scores['Resonance Provider (Емпатія/Розуміння)']*100)}%")
-            prov_cols[3].metric("Expansion", f"{int(p_scores['Expansion Provider (Драйв/Натхнення)']*100)}%")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Safety", f"{int(p_scores['Safety Provider (Надійність)']*100)}%")
+            c2.metric("Resource", f"{int(p_scores['Resource Provider (Підтримка)']*100)}%")
+            c3.metric("Resonance", f"{int(p_scores['Resonance Provider (Емпатія/Розуміння)']*100)}%")
+            c4.metric("Expansion", f"{int(p_scores['Expansion Provider (Драйв/Натхнення)']*100)}%")
             
             st.success(f"💎 Ваша суперсила: **{manual['superpower'][0]}**")
                 
