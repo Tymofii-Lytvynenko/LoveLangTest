@@ -1,5 +1,10 @@
 from dataclasses import dataclass, field
 
+"""
+    Values are normalized (0.0 - 1.0).
+    Input of 0-20 scale should be divided by 20.0 before setting here.
+"""
+
 @dataclass
 class NeuroticismDomain:
     """Загроза та Емоційна стабільність"""

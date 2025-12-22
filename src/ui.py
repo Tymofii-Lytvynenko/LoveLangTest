@@ -27,33 +27,20 @@ def render_info_box(title: str, text: str):
     with st.expander(f"ℹ️ Довідка: {title}"):
         st.markdown(text)
 
-def render_big_five_manual() -> PsychometricsComponent:
-    st.header("1. Substrate Layer (Психометрія)")
-    st.markdown(EXPLANATIONS["big_five_intro"])
+def _facet_slider(label: str, obj, attr_name: str, help_text: str):
+    """
+    Helper function to render a facet slider (0-20 scale).
+    Internally converts 0-20 integer input to 0.0-1.0 float model value.
+    """
+    # Get current normalized value (0.0-1.0) and convert to scale (0-20) for display
+    current_val_norm = getattr(obj, attr_name)
+    default_val_scaled = int(current_val_norm * 20.0)
     
-    col1, col2 = st.columns(2)
+    # Render slider 0-20
+    new_val_scaled = st.slider(label, 0, 20, default_val_scaled, help=help_text)
     
-    # Базові налаштування (як раніше)
-    with col1:
-        render_info_box("Openness", EXPLANATIONS["openness"])
-        o = st.number_input("Openness (0-100)", 0, 100, 50)
-        
-        render_info_box("Conscientiousness", EXPLANATIONS["conscientiousness"])
-        c = st.number_input("Conscientiousness (0-100)", 0, 100, 50)
-        
-        render_info_box("Extraversion", EXPLANATIONS["extraversion"])
-        e = st.number_input("Extraversion (0-100)", 0, 100, 50)
-
-    with col2:
-        render_info_box("Agreeableness", EXPLANATIONS["agreeableness"])
-        a = st.number_input("Agreeableness (0-100)", 0, 100, 50)
-        
-        render_info_box("Neuroticism", EXPLANATIONS["neuroticism"])
-        n = st.number_input("Neuroticism (0-100)", 0, 100, 50)
-        
-        st.markdown("---")
-        adhd = st.checkbox("РДУГ (ADHD)")
-        asd = st.checkbox("РАС (Autism Spectrum)")
+    # Write back normalized value (0.0-1.0)
+    setattr(obj, attr_name, new_val_scaled / 20.0)
 
 def render_big_five_manual() -> PsychometricsComponent:
     st.header("1. Substrate Layer (Психометрія)")
@@ -61,103 +48,102 @@ def render_big_five_manual() -> PsychometricsComponent:
     
     col1, col2 = st.columns(2)
     
-    # --- Базове налаштування (5 загальних слайдерів) ---
+    # --- Базове налаштування (Загальні бали залишаємо 0-100 для зручності T-scores) ---
     with col1:
         render_info_box("Openness", EXPLANATIONS["openness"])
-        o = st.number_input("Openness (0-100)", 0, 100, 50, help="Відкритість до досвіду")
+        o = st.number_input("Openness (Загальний, 0-100)", 0, 100, 50, help="Відкритість до досвіду")
         
         render_info_box("Conscientiousness", EXPLANATIONS["conscientiousness"])
-        c = st.number_input("Conscientiousness (0-100)", 0, 100, 50, help="Сумлінність / Організованість")
+        c = st.number_input("Conscientiousness (Загальний, 0-100)", 0, 100, 50, help="Сумлінність / Організованість")
         
         render_info_box("Extraversion", EXPLANATIONS["extraversion"])
-        e = st.number_input("Extraversion (0-100)", 0, 100, 50, help="Екстраверсія")
+        e = st.number_input("Extraversion (Загальний, 0-100)", 0, 100, 50, help="Екстраверсія")
 
     with col2:
         render_info_box("Agreeableness", EXPLANATIONS["agreeableness"])
-        a = st.number_input("Agreeableness (0-100)", 0, 100, 50, help="Доброзичливість")
+        a = st.number_input("Agreeableness (Загальний, 0-100)", 0, 100, 50, help="Доброзичливість")
         
         render_info_box("Neuroticism", EXPLANATIONS["neuroticism"])
-        n = st.number_input("Neuroticism (0-100)", 0, 100, 50, help="Невротизм / Емоційна нестабільність")
+        n = st.number_input("Neuroticism (Загальний, 0-100)", 0, 100, 50, help="Невротизм / Емоційна нестабільність")
         
         st.markdown("---")
         st.caption("Нейродівергентність впливає на алгоритми Resource та Safety.")
         adhd = st.checkbox("РДУГ (ADHD)")
         asd = st.checkbox("РАС (Autism Spectrum)")
 
-    # Створюємо базовий об'єкт (всі фасети за замовчуванням дорівнюють загальному балу)
+    # Створюємо базовий об'єкт. Всі фасети стають = загальному балу (нормалізованому).
     psycho = PsychometricsComponent.from_high_level_scores(o, c, e, a, n, adhd, asd)
 
-    # --- Advanced: Детальне налаштування (30 фасетів) ---
-    with st.expander("🔬 Advanced: Детальне налаштування (30 фасетів IPIP-NEO)"):
-        st.info("За замовчуванням підкатегорії успадковують значення головної риси. Змінюйте їх, якщо знаєте свій детальний профіль.")
+    # --- Advanced: Детальне налаштування (30 фасетів, шкала 0-20) ---
+    with st.expander("🔬 Advanced: Детальне налаштування (30 фасетів, шкала 0-20)"):
+        st.info("Введіть свої 'сирі' бали по фасетах (0-20). Якщо ви їх не знаєте, залиште як є (вони розраховані з загальних балів).")
         
-        # Використовуємо таби для компактності, бо 30 слайдерів - це багато
         t_n, t_e, t_o, t_a, t_c = st.tabs(["Neuroticism", "Extraversion", "Openness", "Agreeableness", "Conscientiousness"])
         
         # 1. Neuroticism Domain
         with t_n:
-            st.markdown("#### 🔴 Neuroticism (Загроза та Реактивність)")
+            st.markdown("#### 🔴 Neuroticism")
             c1, c2 = st.columns(2)
             with c1:
-                psycho.neuroticism.anxiety = st.slider("Anxiety (Тривожність)", 0.0, 1.0, psycho.neuroticism.anxiety, help="Схильність хвилюватися про майбутнє.")
-                psycho.neuroticism.hostility = st.slider("Anger (Ворожість)", 0.0, 1.0, psycho.neuroticism.hostility, help="Легкість виникнення роздратування та гніву.")
-                psycho.neuroticism.depression = st.slider("Depression (Депресивність)", 0.0, 1.0, psycho.neuroticism.depression, help="Схильність до смутку, апатії та почуття провини.")
+                _facet_slider("Anxiety (Тривожність)", psycho.neuroticism, "anxiety", "Схильність хвилюватися про майбутнє.")
+                _facet_slider("Anger (Ворожість)", psycho.neuroticism, "hostility", "Легкість виникнення роздратування.")
+                _facet_slider("Depression (Депресивність)", psycho.neuroticism, "depression", "Схильність до смутку.")
             with c2:
-                psycho.neuroticism.self_consciousness = st.slider("Self-Consciousness (Сором'язливість)", 0.0, 1.0, psycho.neuroticism.self_consciousness, help="Чутливість до думки інших, страх ганьби.")
-                psycho.neuroticism.impulsiveness = st.slider("Immoderation (Імпульсивність)", 0.0, 1.0, psycho.neuroticism.impulsiveness, help="Важкість у стримуванні бажань та спокус.")
-                psycho.neuroticism.vulnerability = st.slider("Vulnerability (Вразливість)", 0.0, 1.0, psycho.neuroticism.vulnerability, help="Здатність справлятися зі стресом.")
+                _facet_slider("Self-Consciousness (Сором'язливість)", psycho.neuroticism, "self_consciousness", "Страх осуду.")
+                _facet_slider("Immoderation (Імпульсивність)", psycho.neuroticism, "impulsiveness", "Важкість у стримуванні бажань.")
+                _facet_slider("Vulnerability (Вразливість)", psycho.neuroticism, "vulnerability", "Реакція на стрес.")
 
         # 2. Extraversion Domain
         with t_e:
-            st.markdown("#### 🟡 Extraversion (Енергія та Соціум)")
+            st.markdown("#### 🟡 Extraversion")
             c1, c2 = st.columns(2)
             with c1:
-                psycho.extraversion.warmth = st.slider("Friendliness (Теплота)", 0.0, 1.0, psycho.extraversion.warmth, help="Щирий інтерес до людей, легкість у вираженні любові.")
-                psycho.extraversion.gregariousness = st.slider("Gregariousness (Стадність)", 0.0, 1.0, psycho.extraversion.gregariousness, help="Потреба в компанії, нелюбов до самотності.")
-                psycho.extraversion.assertiveness = st.slider("Assertiveness (Асертивність)", 0.0, 1.0, psycho.extraversion.assertiveness, help="Лідерство, домінантність, вміння відстоювати своє.")
+                _facet_slider("Friendliness (Теплота)", psycho.extraversion, "warmth", "Легкість у вираженні любові.")
+                _facet_slider("Gregariousness (Стадність)", psycho.extraversion, "gregariousness", "Потреба в компанії.")
+                _facet_slider("Assertiveness (Асертивність)", psycho.extraversion, "assertiveness", "Лідерство.")
             with c2:
-                psycho.extraversion.activity = st.slider("Activity Level (Активність)", 0.0, 1.0, psycho.extraversion.activity, help="Темп життя, енергійність, постійна зайнятість.")
-                psycho.extraversion.excitement_seeking = st.slider("Excitement Seeking (Пошук вражень)", 0.0, 1.0, psycho.extraversion.excitement_seeking, help="Потреба в драйві, ризику та стимуляції.")
-                psycho.extraversion.positive_emotions = st.slider("Cheerfulness (Позитивні емоції)", 0.0, 1.0, psycho.extraversion.positive_emotions, help="Схильність відчувати радість та оптимізм.")
+                _facet_slider("Activity Level (Активність)", psycho.extraversion, "activity", "Темп життя.")
+                _facet_slider("Excitement Seeking (Пошук вражень)", psycho.extraversion, "excitement_seeking", "Потреба в драйві.")
+                _facet_slider("Cheerfulness (Позитивні емоції)", psycho.extraversion, "positive_emotions", "Оптимізм.")
 
         # 3. Openness Domain
         with t_o:
-            st.markdown("#### 🟢 Openness (Когнітивний стиль)")
+            st.markdown("#### 🟢 Openness")
             c1, c2 = st.columns(2)
             with c1:
-                psycho.openness.fantasy = st.slider("Imagination (Уява)", 0.0, 1.0, psycho.openness.fantasy, help="Багатство внутрішнього світу та фантазій.")
-                psycho.openness.aesthetics = st.slider("Artistic Interests (Естетика)", 0.0, 1.0, psycho.openness.aesthetics, help="Чутливість до краси, мистецтва, музики.")
-                psycho.openness.feelings = st.slider("Emotionality (Емоційність)", 0.0, 1.0, psycho.openness.feelings, help="Глибина та усвідомлення власних емоцій.")
+                _facet_slider("Imagination (Уява)", psycho.openness, "fantasy", "Багатство фантазій.")
+                _facet_slider("Artistic Interests (Естетика)", psycho.openness, "aesthetics", "Любов до мистецтва.")
+                _facet_slider("Emotionality (Емоційність)", psycho.openness, "feelings", "Глибина почуттів.")
             with c2:
-                psycho.openness.actions = st.slider("Adventurousness (Дії/Новизна)", 0.0, 1.0, psycho.openness.actions, help="Готовність пробувати нове (їжу, місця, хобі).")
-                psycho.openness.ideas = st.slider("Intellect (Ідеї)", 0.0, 1.0, psycho.openness.ideas, help="Інтелектуальна допитливість, любов до філософських дебатів.")
-                psycho.openness.values = st.slider("Liberalism (Цінності)", 0.0, 1.0, psycho.openness.values, help="Готовність переглядати соціальні, політичні та релігійні погляди.")
+                _facet_slider("Adventurousness (Дії/Новизна)", psycho.openness, "actions", "Готовність пробувати нове.")
+                _facet_slider("Intellect (Ідеї)", psycho.openness, "ideas", "Інтелектуальна допитливість.")
+                _facet_slider("Liberalism (Цінності)", psycho.openness, "values", "Гнучкість поглядів.")
 
         # 4. Agreeableness Domain
         with t_a:
-            st.markdown("#### 🔵 Agreeableness (Соціальна гармонія)")
+            st.markdown("#### 🔵 Agreeableness")
             c1, c2 = st.columns(2)
             with c1:
-                psycho.agreeableness.trust = st.slider("Trust (Довіра)", 0.0, 1.0, psycho.agreeableness.trust, help="Віра в чесність та добрі наміри інших людей.")
-                psycho.agreeableness.straightforwardness = st.slider("Morality (Прямолінійність)", 0.0, 1.0, psycho.agreeableness.straightforwardness, help="Чесність, відвертість, нездатність до маніпуляцій.")
-                psycho.agreeableness.altruism = st.slider("Altruism (Альтруїзм)", 0.0, 1.0, psycho.agreeableness.altruism, help="Активне бажання допомагати іншим.")
+                _facet_slider("Trust (Довіра)", psycho.agreeableness, "trust", "Віра в людей.")
+                _facet_slider("Morality (Прямолінійність)", psycho.agreeableness, "straightforwardness", "Чесність.")
+                _facet_slider("Altruism (Альтруїзм)", psycho.agreeableness, "altruism", "Бажання допомагати.")
             with c2:
-                psycho.agreeableness.compliance = st.slider("Cooperation (Поступливість)", 0.0, 1.0, psycho.agreeableness.compliance, help="Уникнення конфліктів, готовність йти на компроміс.")
-                psycho.agreeableness.modesty = st.slider("Modesty (Скромність)", 0.0, 1.0, psycho.agreeableness.modesty, help="Небажання вихвалятися, применшення власних заслуг.")
-                psycho.agreeableness.tender_mindedness = st.slider("Sympathy (Чуйність)", 0.0, 1.0, psycho.agreeableness.tender_mindedness, help="Емпатія, співчуття до чужого болю.")
+                _facet_slider("Cooperation (Поступливість)", psycho.agreeableness, "compliance", "Уникнення конфліктів.")
+                _facet_slider("Modesty (Скромність)", psycho.agreeableness, "modesty", "Відсутність зарозумілості.")
+                _facet_slider("Sympathy (Чуйність)", psycho.agreeableness, "tender_mindedness", "Емпатія.")
 
         # 5. Conscientiousness Domain
         with t_c:
-            st.markdown("#### 🟣 Conscientiousness (Виконавча функція)")
+            st.markdown("#### 🟣 Conscientiousness")
             c1, c2 = st.columns(2)
             with c1:
-                psycho.conscientiousness.competence = st.slider("Self-Efficacy (Компетентність)", 0.0, 1.0, psycho.conscientiousness.competence, help="Віра в свою здатність справлятися з життєвими завданнями.")
-                psycho.conscientiousness.order = st.slider("Orderliness (Порядок)", 0.0, 1.0, psycho.conscientiousness.order, help="Любов до чистоти, структури та організації простору.")
-                psycho.conscientiousness.dutifulness = st.slider("Dutifulness (Обов'язок)", 0.0, 1.0, psycho.conscientiousness.dutifulness, help="Надійність, дотримання обіцянок та моральних принципів.")
+                _facet_slider("Self-Efficacy (Компетентність)", psycho.conscientiousness, "competence", "Віра в свої сили.")
+                _facet_slider("Orderliness (Порядок)", psycho.conscientiousness, "order", "Любов до порядку.")
+                _facet_slider("Dutifulness (Обов'язок)", psycho.conscientiousness, "dutifulness", "Надійність.")
             with c2:
-                psycho.conscientiousness.achievement = st.slider("Achievement Striving (Досягнення)", 0.0, 1.0, psycho.conscientiousness.achievement, help="Амбіційність, орієнтація на успіх та кар'єру.")
-                psycho.conscientiousness.self_discipline = st.slider("Self-Discipline (Самодисципліна)", 0.0, 1.0, psycho.conscientiousness.self_discipline, help="Здатність змусити себе працювати та доводити справи до кінця.")
-                psycho.conscientiousness.deliberation = st.slider("Cautiousness (Обережність)", 0.0, 1.0, psycho.conscientiousness.deliberation, help="Схильність думати перед тим, як діяти.")
+                _facet_slider("Achievement Striving (Досягнення)", psycho.conscientiousness, "achievement", "Амбіції.")
+                _facet_slider("Self-Discipline (Самодисципліна)", psycho.conscientiousness, "self_discipline", "Сила волі.")
+                _facet_slider("Cautiousness (Обережність)", psycho.conscientiousness, "deliberation", "Думання перед дією.")
 
     return psycho
 
