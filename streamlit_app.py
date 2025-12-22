@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 from datetime import datetime
+from enum import Enum  # <--- Додано
 
 from src.profile import UserProfile
 from src.services.adjustment import NeedsAdjustmentService
@@ -17,6 +18,12 @@ from src.ui import (
 )
 
 CURRENT_VERSION = "3.2"
+
+def enum_serializer(obj):
+    """Допоміжна функція для серіалізації Enum об'єктів у JSON"""
+    if isinstance(obj, Enum):
+        return obj.value
+    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
 
 def handle_save_load():
     """Логіка сайдбару для збереження/завантаження профілю"""
@@ -65,7 +72,13 @@ def handle_save_load():
                         "_context_snapshot": StateSanitizer.get_current_context_snapshot(),
                         "state": clean_state
                     }
-                    cleaned_json = json.dumps(cleaned_export, indent=4, ensure_ascii=False)
+                    # Використовуємо кастомний серіалізатор
+                    cleaned_json = json.dumps(
+                        cleaned_export, 
+                        indent=4, 
+                        ensure_ascii=False, 
+                        default=enum_serializer  # <--- FIX
+                    )
                     
                     st.download_button(
                         label="🛠️ Завантажити виправлений файл",
@@ -105,7 +118,13 @@ def handle_save_load():
                 "state": current_state
             }
             
-            json_data = json.dumps(export_data, indent=4, ensure_ascii=False)
+            # Використовуємо кастомний серіалізатор
+            json_data = json.dumps(
+                export_data, 
+                indent=4, 
+                ensure_ascii=False, 
+                default=enum_serializer  # <--- FIX
+            )
             filename = f"crnas_profile_{datetime.now().strftime('%Y%m%d_%H%M')}.json"
             
             st.download_button(
