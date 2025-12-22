@@ -30,18 +30,67 @@ The UserProfile entity is composed of the following modules:
 
 ### **3.1. Module A: PsychometricsComponent (The Hardware)**
 
-**Purpose:** Acts as a coefficient modifier for all other modules. It represents the user's "operating system."
+**Purpose:** Acts as a high-resolution coefficient modifier for all other modules. Unlike basic OCEAN models, this component utilizes the **30-Facet Model (NEO-PI-R / IPIP-NEO)** to distinguish specific behavioral drivers (e.g., distinguishing *Intellectual Curiosity* from *Emotional Sensitivity* within Openness).
 
-**Variables:**
+**Methodology:** Inputs are normalized floats (0.0–1.0).
 
-* O_score (Float 0.0-1.0): **Openness**. Correlates with Intellectual Resonance and Novelty needs.
-* C_score (Float 0.0-1.0): **Conscientiousness**. Inverse correlation with external Resource/Scaffolding needs.
-* E_score (Float 0.0-1.0): **Extraversion**. Correlates with Social Expansion needs.
-* A_score (Float 0.0-1.0): **Agreeableness**. Correlates with Emotional Resonance needs.
-* N_score (Float 0.0-1.0): **Neuroticism**. Strong correlation with Safety needs.
-* Neurotype_Flags (Bitmask/Set):
-  * ADHD_Trait: Modifies Novelty decay rate (boredom) and Executive Function needs.
-  * ASD_Trait: Modifies Sensory Safety needs and Communication directness.
+#### **1. Neuroticism Domain (The Threat Detection System)**
+*Primary Driver for: Safety Needs & Conflict Style.*
+
+* **N1: Anxiety:** Tendency to worry and anticipate future danger. *Increases need for Predictability.*
+* **N2: Anger (Hostility):** Tendency to experience frustration and bitterness. *Predicts "Fight" response in conflicts.*
+* **N3: Depression:** Susceptibility to sadness and hopelessness. *Increases need for Co-Regulation.*
+* **N4: Self-Consciousness:** Sensitivity to what others think; shame-prone. *Increases Rejection Sensitivity.*
+* **N5: Immoderation:** Difficulty resisting cravings/urges.
+* **N6: Vulnerability:** Response to stress/pressure. *High scores indicate a need for a "Safe Haven" partner.*
+
+#### **2. Extraversion Domain (The Energy System)**
+*Primary Driver for: Expansion Needs & Social Battery.*
+
+* **E1: Friendliness:** Warmth and affection towards others.
+* **E2: Gregariousness:** Preference for company over solitude. *Determines "Social Expansion" needs.*
+* **E3: Assertiveness:** Dominance and leadership tendencies. *Influences Power Dynamics.*
+* **E4: Activity Level:** Pace of living; busyness. *High mismatch here causes lifestyle friction.*
+* **E5: Excitement Seeking:** Need for thrills and stimulation. *Primary driver for Novelty Needs.*
+* **E6: Cheerfulness:** Tendency to experience positive emotions.
+
+#### **3. Openness Domain (The Cognitive Style)**
+*Primary Driver for: Resonance Type (Cognitive vs. Aesthetic).*
+
+* **O1: Imagination:** Richness of fantasy life.
+* **O2: Artistic Interests:** Appreciation for beauty and art. *Driver for Aesthetic Resonance.*
+* **O3: Emotionality:** Depth and awareness of feelings. *Driver for Emotional Permeability.*
+* **O4: Adventurousness:** Willingness to try new things/routines. *Driver for Behavioral Expansion.*
+* **O5: Intellect:** Interest in abstract ideas and philosophical debate (not IQ). *Driver for Cognitive/Sapiosexual Resonance.*
+* **O6: Liberalism:** Readiness to challenge authority and convention.
+
+#### **4. Agreeableness Domain (The Social Interface)**
+*Primary Driver for: Conflict Resolution & Emotional Safety.*
+
+* **A1: Trust:** Belief in the sincerity of others. *Low scores trigger "Suspicion" defense mechanisms.*
+* **A2: Morality (Straightforwardness):** Frankness in expression. *High scores correlate with "Radical Honesty".*
+* **A3: Altruism:** Active concern for others' welfare. *Driver for Caregiving capacity.*
+* **A4: Cooperation:** Dislike of confrontation. *Predicts "Fawn" or Compromise responses.*
+* **A5: Modesty:** Tendency to play down achievements.
+* **A6: Sympathy:** Compassion for others' suffering. *Critical for Emotional Validation capacity.*
+
+#### **5. Conscientiousness Domain (The Executive System)**
+*Primary Driver for: Resource Provision & Stability.*
+
+* **C1: Self-Efficacy:** Confidence in one's ability to accomplish things.
+* **C2: Orderliness:** Personal organization and tidiness. *Major source of domestic friction.*
+* **C3: Dutifulness:** Sense of moral obligation/reliability.
+* **C4: Achievement Striving:** Ambition and goal-orientation.
+* **C5: Self-Discipline:** Ability to persist despite distractions. *Often impaired in ADHD profiles.*
+* **C6: Cautiousness:** Tendency to think before acting. *Inverse correlation with Spontaneity.*
+
+#### **6. Neurodivergence Flags (Global Modifiers)**
+* **ADHD_Trait (Bool):**
+    * Adjusts *Resource Needs* (requires external scaffolding).
+    * Increases *Novelty Decay Rate* (boredom sets in faster).
+* **ASD_Trait (Bool):**
+    * Adjusts *Safety Needs* (Sensory regulation).
+    * Modifies *Communication Protocol* (Requires explicit/direct verbalization).
 
 ### **3.2. Module B: RelationalNeedsComponent (The S.R.M.E. Model)**
 
