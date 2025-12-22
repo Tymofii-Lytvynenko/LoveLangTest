@@ -1,19 +1,23 @@
 import streamlit as st
 from src.profile import UserProfile
+from src.services.adjustment import NeedsAdjustmentService
+from src.services.reporting import ReportGenerator
+
+# Імпорт UI компонентів
 from src.ui import (
     render_big_five_manual, 
     render_shadow_form, 
     render_eros_form, 
     render_scenarios_engine,
-    render_professional_compass  # <--- 1. Додаємо імпорт
+    render_professional_compass
 )
 
 def main():
-    st.set_page_config(page_title="CRNAS v2.1", layout="wide", page_icon="🧬")
+    st.set_page_config(page_title="CRNAS v3.0 (DDD Refactor)", layout="wide", page_icon="🧬")
     st.title("🧬 CRNAS: Comprehensive Relationship Needs Analysis System")
     
     with st.form("main_form"):
-        # 1. Hardware Layer
+        # 1. Hardware Layer (Psychometrics 30-facet)
         psycho = render_big_five_manual()
         st.divider()
         
@@ -25,29 +29,30 @@ def main():
         eros = render_eros_form()
         st.divider()
         
-        # 4. Context Layer (Data Collection)
-        needs = render_scenarios_engine()
+        # 4. Context Layer (Needs Collection)
+        raw_needs = render_scenarios_engine()
         st.divider()
 
         # 5. Professional Layer
-        # <--- 2. Додаємо відображення компонента у формі
         prof = render_professional_compass()
         
         st.markdown("---")
         submit = st.form_submit_button("📊 Розрахувати архітектуру", type="primary")
 
     if submit:
-        # <--- 3. Передаємо 'prof' у конструктор UserProfile
-        user = UserProfile("User", psycho, shadow, eros, needs, prof)
+        # A. Створення профілю з "сирими" даними
+        # Зверни увагу: raw_needs ще не скориговані
+        user = UserProfile("User", psycho, shadow, eros, raw_needs, prof)
         
-        # Calculation
-        user.needs.calculate_adjustments(user.psychometrics)
+        # B. Виклик Сервісу Корекції (Adjustment Service)
+        # Це pure function: бере вхідні дані -> повертає нові скориговані потреби
+        user.needs = NeedsAdjustmentService.adjust_needs(user.needs, user.psychometrics)
         
-        # Output
-        manual = user.generate_manual()
+        # C. Виклик Сервісу Звітності (Reporting Service)
+        manual = ReportGenerator.generate_manual(user)
         
         # Display Results
-        st.success("Розрахунок завершено.")
+        st.success("Розрахунок завершено (v3.0 Logic Applied).")
         
         r1, r2 = st.columns(2)
         with r1:
@@ -61,11 +66,9 @@ def main():
                 
             st.write("---")
             st.subheader("🎒 Що ви приносите у стосунки (Provision)")
-            st.caption("Розраховано на основі вашої психометрії та професійного стилю.")
             
             prov_cols = st.columns(4)
             p_scores = manual['provision_scores']
-            
             prov_cols[0].metric("Safety", f"{int(p_scores['Safety Provider (Надійність)']*100)}%")
             prov_cols[1].metric("Resource", f"{int(p_scores['Resource Provider (Підтримка)']*100)}%")
             prov_cols[2].metric("Resonance", f"{int(p_scores['Resonance Provider (Емпатія/Розуміння)']*100)}%")
@@ -77,8 +80,6 @@ def main():
             st.subheader("Операційні примітки")
             st.warning(manual['shadow_warning'])
             st.info(f"**Eros Profile:** {manual['erotic_key']}")
-            
-            # <--- 4. Додаємо вивід результатів по роботі
             st.info(f"**Professional Style:** {manual['professional_key']}")
             st.caption(f"Strategy: {manual['interaction_style']}")
             if manual['resource_warning']:

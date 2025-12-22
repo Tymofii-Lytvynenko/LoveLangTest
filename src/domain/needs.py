@@ -1,0 +1,14 @@
+from dataclasses import dataclass, field
+
+@dataclass
+class RelationalNeedsComponent:
+    raw_safety: float = 0.0
+    raw_resource: float = 0.0
+    raw_resonance: float = 0.0
+    raw_expansion: float = 0.0
+    
+    # Ці поля заповнюються сервісом AdjustmentService
+    adjusted_safety: float = 0.0
+    adjusted_resource: float = 0.0
+    adjusted_resonance: float = 0.0
+    adjusted_expansion: float = 0.0

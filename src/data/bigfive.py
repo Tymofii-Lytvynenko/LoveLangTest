@@ -1,91 +1,63 @@
 """
-METHODOLOGY: BIG FIVE (OCEAN) INTERPRETATION LAYER
-==================================================
-
-Philosophy:
------------
-We treat the Big Five traits as the "Hardware" or "Operating System" of the user.
-Unlike relationship needs (which are negotiated), psychometrics are relatively stable biological/psychological traits.
-
-Rationale for Manual Input:
----------------------------
-Conducting a valid psychometric assessment requires 40-100+ questions (e.g., IPIP-NEO). 
-Shortened in-app versions often lack validity. Therefore, we rely on users importing 
-their scores from professional external sources (Truity, IPIP, etc.) to ensure 
-the integrity of the "Substrate Layer".
-
-Interpretation Logic (Relational Impact):
------------------------------------------
-We do not judge traits as "Good" or "Bad". We map them to *Needs*:
-1. Openness (O):
-   - High: Needs Intellectual Resonance, Novelty (Expansion).
-   - Low: Needs Predictability, Tradition (Safety).
-   
-2. Conscientiousness (C):
-   - High: Offers Resource (stability), demands Order.
-   - Low: Needs Resource (external scaffolding), offers Spontaneity.
-   
-3. Extraversion (E):
-   - High: Needs Social Expansion, fast-paced stimuli.
-   - Low: Needs Solitude (Regulation), deep 1-on-1 connection.
-   
-4. Agreeableness (A):
-   - High: Offers Emotional Resonance, risk of Self-Sacrifice (Fawn response).
-   - Low: Prioritizes Logic/Truth over Harmony (can hurt sensitive partners).
-   
-5. Neuroticism (N):
-   - High: The primary driver for Safety needs. High sensitivity to tone/threat.
-   - Low: Stable, but may lack empathy for a high-N partner's anxiety.
+DATA LAYER: BIG FIVE CONTENT
+============================
+Mistress: Text descriptions for the 5 Domains and 30 Facets.
 """
 
+# Загальні описи доменів (залишаємо для сумісності/заголовків)
 EXPLANATIONS = {
     "big_five_intro": """
     **Модель Big Five (OCEAN)** — це "операційна система" вашої психіки.
-    
-    Ми не проводимо цей тест тут, оскільки він вимагає 50+ питань для точності. 
-    Будь ласка, введіть свої **Т-бали (шкала 0-100)** з будь-якого професійного тесту.
-    
-    *Якщо ви не знаєте своїх показників, введіть інтуїтивно (50 = середньо).*
+    Ми використовуємо розширену модель (IPIP-NEO), яка розбиває кожну з 5 рис на 6 аспектів (фасетів).
     """,
     
-    "openness": """
-    **Відкритість до досвіду (Openness)**
-    *Це про вашу потребу в новій інформації та інтенсивності переживань.*
-    
-    * **Високий (>70):** Вам фізично боляче від рутини. Ви "сапіосексуал". Вам потрібні філософські розмови до ранку і постійна новизна.
-    * **Низький (<30):** Ви цінуєте традиції, перевірені методи і конкретику. "Просто скажи, що робити, не треба філософії".
-    """,
-    
-    "conscientiousness": """
-    **Сумлінність (Conscientiousness)**
-    *Це про здатність організовувати себе та простір (Виконавча функція).*
-    
-    * **Високий (>70):** Ви — людина-план. Надійність — ваша мова любові. Хаос партнера викликає у вас тривогу.
-    * **Низький (<30):** Ви спонтанні і гнучкі, але можете забувати про обіцянки чи побутові дрібниці. Вам потрібен партнер, який не буде вас "пиляти", а допоможе структурувати життя.
-    * *Примітка:* При РДУГ цей показник часто низький через біологію, а не лінь.
-    """,
-    
-    "extraversion": """
-    **Екстраверсія (Extraversion)**
-    *Це про те, як ви заряджаєте свою "батарейку".*
-    
-    * **Високий (>70):** Ізоляція — це покарання. Ви хочете робити все *разом*. Активний відпочинок, гості, події.
-    * **Низький (<30):** Люди (навіть кохані) витрачають вашу енергію. Вам життєво необхідний час наодинці ("печера"), щоб відновитися і знову любити.
-    """,
-    
-    "agreeableness": """
-    **Доброзичливість (Agreeableness)**
-    *Це про пріоритет: Гармонія vs Істина.*
-    
-    * **Високий (>70):** Ви емпат. Ви часто поступаєтесь власними інтересами, аби уникнути конфлікту. Вам потрібен партнер, який не зловживатиме вашою добротою.
-    * **Низький (<30):** Ви скептик і прагматик. Ви любите дебати і пряму критику. "Я кажу це, бо це правда". Партнери можуть вважати вас жорстким.
-    """,
-    
-    "neuroticism": """
-    **Невротизм (Neuroticism)**
-    *Це чутливість вашої системи сигналізації про небезпеку.*
-    
-    * **Високий (>70):** Ви відчуваєте все *дуже глибоко*. Тон голосу, затримка відповіді, насуплені брови — все це реєструється як загроза. Ваша головна потреба — **Безпека**.
-    * **Низький (<30):** Ви "скеля". Стрес вас не бере. Але вам може бути важко зрозуміти, чому партнер плаче через "дрібницю".
-    """
+    "openness": "Відкритість до досвіду (Openness)",
+    "conscientiousness": "Сумлінність (Conscientiousness)",
+    "extraversion": "Екстраверсія (Extraversion)",
+    "agreeableness": "Доброзичливість (Agreeableness)",
+    "neuroticism": "Невротизм (Neuroticism)"
+}
+
+# Детальні описи 30 фасетів для Relationship Context
+FACETS_EXPLANATIONS = {
+    "neuroticism": {
+        "anxiety": "**Тривожність (Anxiety):** Схильність хвилюватися про майбутнє. У стосунках: потреба в частому підтвердженні почуттів.",
+        "hostility": "**Ворожість (Anger/Hostility):** Легкість виникнення роздратування. У стосунках: схильність до різких суперечок.",
+        "depression": "**Депресивність (Depression):** Схильність до смутку та апатії. У стосунках: потреба в емоційній підтримці партнера.",
+        "self_consciousness": "**Сором'язливість (Self-Consciousness):** Чутливість до думки інших. У стосунках: страх осуду чи насмішок.",
+        "impulsiveness": "**Імпульсивність (Immoderation):** Важкість у стримуванні бажань. У стосунках: спонтанні витрати або вчинки.",
+        "vulnerability": "**Вразливість (Vulnerability):** Реакція на стрес. У стосунках: потреба в 'тихій гавані' під час криз."
+    },
+    "extraversion": {
+        "warmth": "**Теплота (Friendliness):** Щирий інтерес до людей. У стосунках: легкість у вираженні любові.",
+        "gregariousness": "**Стадність (Gregariousness):** Потреба в компанії. У стосунках: бажання постійно бути разом з партнером.",
+        "assertiveness": "**Асертивність (Assertiveness):** Лідерські якості. У стосунках: хто приймає рішення?",
+        "activity": "**Активність (Activity Level):** Темп життя. У стосунках: чи співпадають ваші швидкості (один біжить, інший лежить)?",
+        "excitement_seeking": "**Пошук вражень (Excitement Seeking):** Потреба в драйві. У стосунках: запит на пригоди та новизну.",
+        "positive_emotions": "**Позитивні емоції (Cheerfulness):** Схильність до радості. У стосунках: загальний емоційний фон."
+    },
+    "openness": {
+        "fantasy": "**Уява (Imagination):** Багатство внутрішнього світу. У стосунках: романтичні мрії та креативність.",
+        "aesthetics": "**Естетика (Artistic Interests):** Чутливість до краси. У стосунках: важливість візуальної складової та мистецтва.",
+        "feelings": "**Почуття (Emotionality):** Глибина переживань. У стосунках: емоційний резонанс та емпатія.",
+        "actions": "**Дії (Adventurousness):** Готовність пробувати нове. У стосунках: відпустки, їжа, секс-експерименти.",
+        "ideas": "**Ідеї (Intellect):** Інтелектуальна допитливість. У стосунках: потреба у філософських розмовах (Sapiosexual driver).",
+        "values": "**Цінності (Liberalism):** Готовність переглядати авторитети. У стосунках: гнучкість поглядів."
+    },
+    "agreeableness": {
+        "trust": "**Довіра (Trust):** Віра в добро людей. У стосунках: відсутність безпідставних ревнощів.",
+        "straightforwardness": "**Прямолінійність (Morality):** Чесність. У стосунках: нездатність до маніпуляцій та брехні.",
+        "altruism": "**Альтруїзм (Altruism):** Бажання допомагати. У стосунках: турбота як мова любові.",
+        "compliance": "**Поступливість (Cooperation):** Уникнення конфліктів. У стосунках: готовність йти на компроміс.",
+        "modesty": "**Скромність (Modesty):** Небажання вихвалятися. У стосунках: рівність партнерів.",
+        "tender_mindedness": "**Чуйність (Sympathy):** Співчуття. У стосунках: здатність відчувати біль партнера."
+    },
+    "conscientiousness": {
+        "competence": "**Компетентність (Self-Efficacy):** Віра в себе. У стосунках: здатність вирішувати життєві проблеми.",
+        "order": "**Порядок (Orderliness):** Любов до структури. У стосунках: побутова сумісність (чистота/хаос).",
+        "dutifulness": "**Обов'язок (Dutifulness):** Надійність. У стосунках: дотримання обіцянок.",
+        "achievement": "**Досягнення (Achievement Striving):** Амбіції. У стосунках: пріоритет кар'єри/успіху.",
+        "self_discipline": "**Самодисципліна (Self-Discipline):** Сила волі. У стосунках: здатність доводити справи до кінця.",
+        "deliberation": "**Обережність (Cautiousness):** Думання перед дією. У стосунках: передбачуваність та виваженість рішень."
+    }
 }
