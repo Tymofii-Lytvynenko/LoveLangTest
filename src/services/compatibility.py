@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from src.enums import AttachmentStyle
 from src.profile import UserProfile
 from src.services.provision import ProvisionService
+from src.services.shadow_analysis import analyze_shadow
 
 
 @dataclass(frozen=True)
@@ -115,32 +116,47 @@ class CompatibilityComparator:
                 )
             )
 
-        first_style = first.shadow.attachment_style
-        second_style = second.shadow.attachment_style
-        if {first_style, second_style} == {AttachmentStyle.ANXIOUS, AttachmentStyle.AVOIDANT}:
-            tensions.append(
-                CompatibilityItem(
-                    title="Тривожно-уникаюча петля",
-                    detail="Один профіль може шукати більше контакту саме тоді, коли інший відступає для регуляції.",
-                    severity="high",
-                )
-            )
-        if AttachmentStyle.DISORGANIZED in {first_style, second_style}:
+        first_shadow = analyze_shadow(first.shadow)
+        second_shadow = analyze_shadow(second.shadow)
+        first_style = first_shadow.style
+        second_style = second_shadow.style
+
+        if first_style is None or second_style is None:
             notes.append(
                 CompatibilityItem(
-                    title="Потрібний дуже явний repair",
-                    detail="Дезорганізований патерн не є вироком, але потребує передбачуваного відновлення контакту після напруги.",
+                    title="Прив'язаність потребує обережної інтерпретації",
+                    detail=(
+                        "Один або обидва профілі мають змішаний або слабко виражений attachment-патерн, "
+                        "тому висновки про anxious/avoidant петлі та secure-збіг тут менш надійні."
+                    ),
                     severity="note",
                 )
             )
-        if first_style == second_style == AttachmentStyle.SECURE:
-            strengths.append(
-                CompatibilityItem(
-                    title="Схожий стабільний стиль прив'язаності",
-                    detail="Обидва профілі мають більше шансів повертатися до контакту без драматизації дистанції.",
-                    severity="positive",
+        else:
+            if {first_style, second_style} == {AttachmentStyle.ANXIOUS, AttachmentStyle.AVOIDANT}:
+                tensions.append(
+                    CompatibilityItem(
+                        title="Тривожно-уникаюча петля",
+                        detail="Один профіль може шукати більше контакту саме тоді, коли інший відступає для регуляції.",
+                        severity="high",
+                    )
                 )
-            )
+            if AttachmentStyle.DISORGANIZED in {first_style, second_style}:
+                notes.append(
+                    CompatibilityItem(
+                        title="Потрібний дуже явний repair",
+                        detail="Дезорганізований патерн не є вироком, але потребує передбачуваного відновлення контакту після напруги.",
+                        severity="note",
+                    )
+                )
+            if first_style == second_style == AttachmentStyle.SECURE:
+                strengths.append(
+                    CompatibilityItem(
+                        title="Схожий стабільний стиль прив'язаності",
+                        detail="Обидва профілі мають більше шансів повертатися до контакту без драматизації дистанції.",
+                        severity="positive",
+                    )
+                )
 
         score = 1.0 - min(1.0, (total_gap / 4 * 0.55) + (eros_gap / 2 * 0.25) + (len(tensions) * 0.04))
         return CompatibilityReport(

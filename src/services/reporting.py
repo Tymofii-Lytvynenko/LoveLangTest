@@ -5,31 +5,24 @@ from src.profile import UserProfile
 from src.domain.shadow import ShadowComponent
 from src.services.neurodivergence import NeurodivergenceService
 from src.services.provision import ProvisionService
+from src.services.shadow_analysis import analyze_shadow
 
 
 class ReportGenerator:
     @staticmethod
     def _shadow_warning(shadow: ShadowComponent) -> str:
-        scores = (
-            (AttachmentStyle.SECURE, shadow.secure_score),
-            (AttachmentStyle.ANXIOUS, shadow.anxious_score),
-            (AttachmentStyle.AVOIDANT, shadow.avoidant_score),
-            (AttachmentStyle.DISORGANIZED, shadow.disorganized_score),
-        )
-        ranked_scores = sorted(scores, key=lambda item: item[1], reverse=True)
-        top_style, top_score = ranked_scores[0]
-        second_score = ranked_scores[1][1]
+        signal = analyze_shadow(shadow)
 
-        if top_score <= 0.35 or (top_score - second_score) <= 0.12:
+        if not signal.is_confident:
             return (
                 "Змішаний або слабко виражений патерн прив'язаності: "
                 "окремий стиль поки не домінує."
             )
-        if top_style == AttachmentStyle.AVOIDANT:
+        if signal.style == AttachmentStyle.AVOIDANT:
             return "Схильність до дистанціювання при стресі."
-        if top_style == AttachmentStyle.ANXIOUS:
+        if signal.style == AttachmentStyle.ANXIOUS:
             return "Висока потреба в контакті та чутливість до віддалення."
-        if top_style == AttachmentStyle.DISORGANIZED:
+        if signal.style == AttachmentStyle.DISORGANIZED:
             return "Хаотична реакція на близькість: одночасний потяг і страх."
         return "Стабільний патерн прив'язаності."
 

@@ -1,4 +1,10 @@
+from src.domain.eros import ErosComponent
+from src.domain.needs import RelationalNeedsComponent
+from src.domain.professional import ProfessionalComponent
+from src.domain.psychometrics import PsychometricsComponent
+from src.domain.shadow import ShadowComponent
 from src.enums import HollandCode
+from src.profile import UserProfile
 from src.question_bank import get_question_bank_registry, question_state_key
 from src.services.compatibility import CompatibilityComparator
 from src.services.profile_builder import build_user_profile_from_state
@@ -50,3 +56,47 @@ def test_compatibility_comparator_reports_strengths_and_tensions() -> None:
     assert 0.0 <= report.score <= 1.0
     assert report.strengths or report.tensions
     assert report.tensions
+
+
+def _neutral_profile(shadow: ShadowComponent) -> UserProfile:
+    return UserProfile(
+        name="Neutral",
+        psychometrics=PsychometricsComponent.from_high_level_scores(50, 50, 50, 50, 50),
+        shadow=shadow,
+        eros=ErosComponent(),
+        needs=RelationalNeedsComponent(
+            raw_safety=0.5,
+            raw_resource=0.5,
+            raw_resonance=0.5,
+            raw_expansion=0.5,
+            adjusted_safety=0.5,
+            adjusted_resource=0.5,
+            adjusted_resonance=0.5,
+            adjusted_expansion=0.5,
+        ),
+        professional=ProfessionalComponent(),
+    )
+
+
+def test_compatibility_comparator_treats_mixed_attachment_as_low_confidence() -> None:
+    first_shadow = ShadowComponent()
+    first_shadow.calculate_from_quiz((0.34, 0.30, 0.32, 0.04))
+    second_shadow = ShadowComponent()
+    second_shadow.calculate_from_quiz((0.0, 1.0, 0.0, 0.0))
+
+    report = CompatibilityComparator.compare(_neutral_profile(first_shadow), _neutral_profile(second_shadow))
+
+    assert all(item.title != "Тривожно-уникаюча петля" for item in report.tensions)
+    assert all(item.title != "Схожий стабільний стиль прив'язаності" for item in report.strengths)
+    assert any("обережної інтерпретації" in item.title.lower() for item in report.notes)
+
+
+def test_compatibility_comparator_still_detects_clear_anxious_avoidant_loop() -> None:
+    first_shadow = ShadowComponent()
+    first_shadow.calculate_from_quiz((0.0, 1.0, 0.0, 0.0))
+    second_shadow = ShadowComponent()
+    second_shadow.calculate_from_quiz((0.0, 0.0, 1.0, 0.0))
+
+    report = CompatibilityComparator.compare(_neutral_profile(first_shadow), _neutral_profile(second_shadow))
+
+    assert any(item.title == "Тривожно-уникаюча петля" for item in report.tensions)
