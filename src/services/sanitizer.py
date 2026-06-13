@@ -101,7 +101,7 @@ class StateSanitizer:
                 if key == "psycho_input_mode":
                     valid_modes = {"pdf", "manual"}
                 elif key == "questionnaire_mode":
-                    valid_modes = {"simple", "extended"}
+                    valid_modes = {"simple", "extended", "full"}
                 else:
                     valid_modes = {"quiz", "manual"}
                 if value in valid_modes:

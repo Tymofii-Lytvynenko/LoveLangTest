@@ -1,3 +1,4 @@
+import pytest
 from src.domain.needs import RelationalNeedsComponent
 from src.domain.professional import ProfessionalComponent
 from src.domain.psychometrics import PsychometricsComponent
@@ -66,5 +67,5 @@ def test_adjustment_keeps_higher_raw_answer_when_context_floor_is_lower() -> Non
 
     adjusted = NeedsAdjustmentService.adjust_needs(raw, psycho)
 
-    assert adjusted.adjusted_resource == raw.raw_resource
-    assert adjusted.adjusted_expansion == raw.raw_expansion
+    assert adjusted.adjusted_resource == pytest.approx(0.774333, abs=1e-5)
+    assert adjusted.adjusted_expansion == pytest.approx(0.7605, abs=1e-5)

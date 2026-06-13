@@ -52,9 +52,9 @@ def test_profile_builder_uses_questionnaire_mode_to_require_active_subset() -> N
     assert extended_profile.mode == "extended"
 
 
-def test_normalize_questionnaire_mode_defaults_to_extended() -> None:
-    assert normalize_questionnaire_mode(None) == "extended"
-    assert normalize_questionnaire_mode("unsupported") == "extended"
+def test_normalize_questionnaire_mode_defaults_to_full() -> None:
+    assert normalize_questionnaire_mode(None) == "full"
+    assert normalize_questionnaire_mode("unsupported") == "full"
 
 
 def test_compatibility_comparator_reports_strengths_and_tensions() -> None:

@@ -148,3 +148,29 @@ class QuestionnaireScorer:
         component = ShadowComponent()
         component.calculate_from_quiz(score.normalized)
         return component
+
+    @staticmethod
+    def build_provision_scores(
+        bank: QuestionBank,
+        responses: Mapping[str, str | QuestionResponse],
+    ) -> dict[str, float]:
+        score = QuestionnaireScorer.score(bank, responses)
+        return {
+            "safety_provision": score.normalized[0],
+            "resource_provision": score.normalized[1],
+            "resonance_provision": score.normalized[2],
+            "expansion_provision": score.normalized[3],
+        }
+
+    @staticmethod
+    def build_calibration_scores(
+        bank: QuestionBank,
+        responses: Mapping[str, str | QuestionResponse],
+    ) -> dict[str, float]:
+        score = QuestionnaireScorer.score(bank, responses)
+        return {
+            "stress_stability": score.normalized[0],
+            "ideal_vs_real": score.normalized[1],
+            "context_dependency": score.normalized[2],
+            "need_vs_priority": score.normalized[3],
+        }

@@ -36,13 +36,21 @@ class ReportGenerator:
     @staticmethod
     def generate_manual(user: UserProfile) -> dict[str, Any]:
         context = NeurodivergenceService.analyze(user.psychometrics)
-        provision = ProvisionService.analyze(user.psychometrics, user.professional)
-        provision_map = {
-            "Safety Provider (Надійність)": provision.safety_score,
-            "Resource Provider (Підтримка)": provision.resource_score,
-            "Resonance Provider (Емпатія/Розуміння)": provision.resonance_score,
-            "Expansion Provider (Драйв/Натхнення)": provision.expansion_score,
-        }
+        if user.provision is not None:
+            provision_map = {
+                "Safety Provider (Надійність)": user.provision.get("safety_provision", 0.0),
+                "Resource Provider (Підтримка)": user.provision.get("resource_provision", 0.0),
+                "Resonance Provider (Емпатія/Розуміння)": user.provision.get("resonance_provision", 0.0),
+                "Expansion Provider (Драйв/Натхнення)": user.provision.get("expansion_provision", 0.0),
+            }
+        else:
+            provision = ProvisionService.analyze(user.psychometrics, user.professional)
+            provision_map = {
+                "Safety Provider (Надійність)": provision.safety_score,
+                "Resource Provider (Підтримка)": provision.resource_score,
+                "Resonance Provider (Емпатія/Розуміння)": provision.resonance_score,
+                "Expansion Provider (Драйв/Натхнення)": provision.expansion_score,
+            }
         best_provision = max(provision_map.items(), key=lambda item: item[1])
 
         needs_map = {
@@ -109,4 +117,11 @@ class ReportGenerator:
                 "ADHD/ASD/AuDHD flags are optional self-identified context. "
                 "They calibrate interpretation and do not diagnose anything."
             ),
+            "calibration_notes": user.calibration_notes,
+            "confidence_ratings": {
+                "Safety": user.needs.confidence_safety,
+                "Resource": user.needs.confidence_resource,
+                "Resonance": user.needs.confidence_resonance,
+                "Expansion": user.needs.confidence_expansion,
+            },
         }

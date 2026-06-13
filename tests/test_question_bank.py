@@ -33,7 +33,7 @@ def _build_bank_payload() -> dict:
 
 def test_actual_banks_load_cleanly() -> None:
     registry = get_question_bank_registry()
-    assert set(registry.banks) == {"needs", "shadow", "eros"}
+    assert set(registry.banks) == {"needs", "shadow", "eros", "provision", "calibration"}
     assert registry.fingerprint
 
 

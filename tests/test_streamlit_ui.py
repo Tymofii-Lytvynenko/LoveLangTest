@@ -22,14 +22,14 @@ def _uploader_labels(app: AppTest) -> list[str]:
     return [element.proto.label for element in app.get("file_uploader")]
 
 
-def test_ui_defaults_to_extended_mode_and_shows_pdf_import_controls() -> None:
+def test_ui_defaults_to_full_mode_and_shows_pdf_import_controls() -> None:
     app = _build_app()
     app.run()
 
     questionnaire_mode = next(radio for radio in app.radio if radio.key == "questionnaire_mode")
     buttons = {button.label: button for button in app.button}
 
-    assert questionnaire_mode.value == "extended"
+    assert questionnaire_mode.value == "full"
     assert "PDF результатів BigFive" in _uploader_labels(app)
     assert buttons["Імпортувати PDF"].disabled is True
     assert "Завантажте PDF, щоб не вводити 30 facets вручну." in _info_values(app)

@@ -14,6 +14,8 @@ QUESTION_STATE_PREFIXES = {
     "needs": "scenario",
     "shadow": "shadow_q",
     "eros": "eros_q",
+    "provision": "provision_q",
+    "calibration": "calibration_q",
 }
 QUESTION_RESPONSE_TYPES = {"single_choice", "best_worst"}
 NEEDS_QUESTION_FAMILIES = {"absolute", "priority"}
@@ -117,9 +119,9 @@ class QuestionBank:
         return tuple(maxes)
 
     def for_mode(self, mode: str) -> "QuestionBank":
-        if mode not in {"simple", "extended"}:
+        if mode not in {"simple", "extended", "full"}:
             raise QuestionBankValidationError(f"Unsupported questionnaire mode '{mode}'.")
-        if mode == "extended":
+        if mode in {"extended", "full"}:
             return self
         return QuestionBank(
             metadata=self.metadata,
@@ -209,7 +211,7 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
             raise QuestionBankValidationError(f"Duplicate question id '{question_id}'.")
         question_ids.add(question_id)
         mode = str(raw_question.get("mode", "simple")).strip() or "simple"
-        if mode not in {"simple", "extended"}:
+        if mode not in {"simple", "extended", "full"}:
             raise QuestionBankValidationError(f"Question '{question_id}' has unsupported mode '{mode}'.")
         response_type = str(raw_question.get("response_type", "single_choice")).strip() or "single_choice"
         if response_type not in QUESTION_RESPONSE_TYPES:
@@ -343,7 +345,7 @@ def load_question_bank(module: str) -> QuestionBank:
 def get_question_bank_registry() -> QuestionBankRegistry:
     banks = {
         module: load_question_bank(module)
-        for module in ("needs", "shadow", "eros")
+        for module in ("needs", "shadow", "eros", "provision", "calibration")
     }
     payload = {
         module: {

@@ -127,6 +127,49 @@ QUESTION_BANK_BLUEPRINTS: dict[str, QuestionBankBlueprint] = {
         required_description_ratio=1.0,
         require_mixed_direction_vectors=True,
     ),
+    "provision": QuestionBankBlueprint(
+        module="provision",
+        vector_labels=("safety_provision", "resource_provision", "resonance_provision", "expansion_provision"),
+        display_vector_labels=("Забезпечення Безпеки", "Забезпечення Ресурсу", "Забезпечення Резонансу", "Забезпечення Експансії"),
+        scientific_basis=(
+            "Social Exchange Theory",
+            "Self-Determination Theory",
+        ),
+        audience_notes=(
+            "Evaluate actual capacity under stress vs ideal conditions.",
+        ),
+        coverage_clusters=(
+            CoverageCluster("safety_prov", ("безпек", "стабільн", "опор", "тривог")),
+        ),
+        banned_terms=_COMMON_BANNED_TERMS,
+        min_question_count=20,
+        min_options_per_question=4,
+        max_options_per_question=4,
+        required_description_ratio=0.0,
+        require_negative_weights=False,
+        require_mixed_direction_vectors=False,
+    ),
+    "calibration": QuestionBankBlueprint(
+        module="calibration",
+        vector_labels=("stress_stability", "ideal_vs_real", "context_dependency", "need_vs_priority"),
+        display_vector_labels=("Стабільність", "Ідеал vs Реал", "Залежність від контексту", "Потреба vs Пріоритет"),
+        scientific_basis=(
+            "Psychometric Calibration",
+        ),
+        audience_notes=(
+            "Detect idealization and context dependency.",
+        ),
+        coverage_clusters=(
+            CoverageCluster("calibration", ("стрес", "ідеал", "контекст", "конфлікт")),
+        ),
+        banned_terms=_COMMON_BANNED_TERMS,
+        min_question_count=8,
+        min_options_per_question=4,
+        max_options_per_question=4,
+        required_description_ratio=0.0,
+        require_negative_weights=False,
+        require_mixed_direction_vectors=False,
+    ),
 }
 
 

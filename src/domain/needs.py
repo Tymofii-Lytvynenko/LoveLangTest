@@ -16,3 +16,8 @@ class RelationalNeedsComponent:
     priority_resource: float = 0.0
     priority_resonance: float = 0.0
     priority_expansion: float = 0.0
+
+    confidence_safety: str = "Medium"
+    confidence_resource: str = "Medium"
+    confidence_resonance: str = "Medium"
+    confidence_expansion: str = "Medium"

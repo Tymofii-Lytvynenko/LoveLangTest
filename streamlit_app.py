@@ -21,6 +21,8 @@ from src.ui import (
     render_professional_compass,
     render_scenarios_engine,
     render_shadow_form,
+    render_provision_form,
+    render_calibration_form,
 )
 
 CURRENT_VERSION = "4.0"
@@ -435,14 +437,24 @@ def render_profile_workspace(bank_fingerprint: str) -> None:
 
 
 def render_questionnaire_mode() -> str:
+    mode_options = ["simple", "extended", "full"]
+    current_mode = normalize_questionnaire_mode(st.session_state.get(QUESTIONNAIRE_MODE_KEY))
+    try:
+        index = mode_options.index(current_mode)
+    except ValueError:
+        index = 1
     return st.radio(
         "Режим анкети",
-        options=["simple", "extended"],
-        index=0 if normalize_questionnaire_mode(st.session_state.get(QUESTIONNAIRE_MODE_KEY)) == "simple" else 1,
-        format_func=lambda mode: "Простий: 40 core questions" if mode == "simple" else "Розширений: 72 core questions",
+        options=mode_options,
+        index=index,
+        format_func=lambda mode: (
+            "Простий: 40 core questions" if mode == "simple"
+            else "Розширений: 72 core questions" if mode == "extended"
+            else "Повний: 100 core questions (з місткістю та калібруванням)"
+        ),
         key=QUESTIONNAIRE_MODE_KEY,
         horizontal=True,
-        help="Розширений режим обраний за замовчуванням: він довший, але стабільніше покриває життєві сценарії.",
+        help="Повний режим містить додаткові блоки для аналізу місткості (provision) та калібрування.",
     )
 
 
@@ -592,7 +604,7 @@ def render_result_dashboard(manual: dict) -> None:
         f'<div class="crnas-note"><strong>Суперсила:</strong> {html.escape(str(manual["superpower"][0]))}</div>'
     )
 
-    notes_tab, neuro_tab = st.tabs(["Операційні примітки", "Нейродивергентний контекст"])
+    notes_tab, neuro_tab, calib_tab = st.tabs(["Операційні примітки", "Нейродивергентний контекст", "Калібрування та Надійність"])
     with notes_tab:
         st.warning(manual["shadow_warning"])
         st.info(f"**Eros profile:** {manual['erotic_key']}")
@@ -609,6 +621,19 @@ def render_result_dashboard(manual: dict) -> None:
         else:
             st.info("Прапорці РДУГ/РАС не обрані, тому додатковий нейродивергентний контекст не застосовано.")
 
+    with calib_tab:
+        st.markdown("##### Надійність оцінок за доменами")
+        for domain, rating in manual["confidence_ratings"].items():
+            color = "green" if rating == "High" else "orange" if rating == "Medium" else "red"
+            st.markdown(f"- **{domain}**: :{color}[{rating}]")
+        st.markdown("---")
+        st.markdown("##### Нотатки калібрування")
+        if manual["calibration_notes"]:
+            for note in manual["calibration_notes"]:
+                st.info(note)
+        else:
+            st.success("Не виявлено значних суперечностей або контекстних зсувів. Профіль має високу внутрішню узгодженість.")
+
 
 def main() -> None:
     st.set_page_config(page_title="CRNAS v4.0", layout="wide", page_icon="🧬")
@@ -621,6 +646,8 @@ def main() -> None:
     needs_bank = registry.get("needs").for_mode(questionnaire_mode)
     shadow_bank = registry.get("shadow").for_mode(questionnaire_mode)
     eros_bank = registry.get("eros").for_mode(questionnaire_mode)
+    provision_bank = registry.get("provision").for_mode(questionnaire_mode)
+    calibration_bank = registry.get("calibration").for_mode(questionnaire_mode)
     psycho = render_big_five_manual()
 
     with st.form("main_form"):
@@ -630,6 +657,14 @@ def main() -> None:
         eros, eros_missing = render_eros_form(eros_bank)
         st.divider()
         raw_needs, needs_missing = render_scenarios_engine(needs_bank)
+        if questionnaire_mode == "full":
+            st.divider()
+            provision, provision_missing = render_provision_form(provision_bank)
+            st.divider()
+            calibration, calibration_missing = render_calibration_form(calibration_bank)
+        else:
+            provision_missing = []
+            calibration_missing = []
         st.divider()
         professional = render_professional_compass()
         st.markdown("---")
@@ -638,17 +673,24 @@ def main() -> None:
     if not submit:
         return
 
-    has_missing_inputs = any((shadow_missing, eros_missing, needs_missing))
+    has_missing_inputs = any((shadow_missing, eros_missing, needs_missing, provision_missing, calibration_missing))
     if has_missing_inputs:
         st.error("Розрахунок заблоковано: дайте явну відповідь на всі питання активних анкет.")
         _render_missing_inputs("Shadow", shadow_missing)
         _render_missing_inputs("Eros", eros_missing)
         _render_missing_inputs("Needs", needs_missing)
+        if questionnaire_mode == "full":
+            _render_missing_inputs("Provision", provision_missing)
+            _render_missing_inputs("Calibration", calibration_missing)
         return
 
-    user = UserProfile("User", psycho, shadow, eros, raw_needs, professional)
-    user.needs = NeedsAdjustmentService.adjust_needs(user.needs, user.psychometrics)
-    manual = ReportGenerator.generate_manual(user)
+    current_state = StateSanitizer.extract_persistable_state(st.session_state)
+    built = build_user_profile_from_state(current_state, registry, name="User")
+    if not built.is_complete or built.user is None:
+        st.error("Розрахунок заблоковано: анкету заповнено не повністю.")
+        return
+
+    manual = ReportGenerator.generate_manual(built.user)
     render_result_dashboard(manual)
 
 

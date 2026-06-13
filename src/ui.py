@@ -498,3 +498,17 @@ def render_professional_compass() -> ProfessionalComponent:
         tertiary_type=_ensure_enum(tertiary_type, HollandCode),
         career_centrality=career_centrality,
     )
+
+
+def render_provision_form(bank: QuestionBank) -> tuple[dict[str, Any] | None, list[str]]:
+    st.header("6. Ваша місткість (Provision / Capacity)")
+    st.caption("Цей блок вимірює те, що ви реально та стабільно можете віддавати або забезпечувати для партнера.")
+    responses, missing_questions = _render_bank_questions(bank)
+    return responses, missing_questions
+
+
+def render_calibration_form(bank: QuestionBank) -> tuple[dict[str, Any] | None, list[str]]:
+    st.header("7. Консистенція та Калібрування (Calibration)")
+    st.caption("Цей блок допомагає виявити розбіжності та вплив стресу чи контексту на ваші відповіді.")
+    responses, missing_questions = _render_bank_questions(bank)
+    return responses, missing_questions

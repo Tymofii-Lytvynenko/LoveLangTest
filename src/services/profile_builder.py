@@ -18,7 +18,7 @@ from src.services.scoring import QuestionnaireScorer
 
 
 QUESTIONNAIRE_MODE_KEY = "questionnaire_mode"
-QUESTIONNAIRE_MODES = {"simple", "extended"}
+QUESTIONNAIRE_MODES = {"simple", "extended", "full"}
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class BuiltProfile:
 
 
 def normalize_questionnaire_mode(raw_mode: object) -> str:
-    return str(raw_mode) if raw_mode in QUESTIONNAIRE_MODES else "extended"
+    return str(raw_mode) if raw_mode in QUESTIONNAIRE_MODES else "full"
 
 
 def _enum_from_state(state: Mapping[str, Any], key: str, enum_class, default):
@@ -145,12 +145,34 @@ def build_user_profile_from_state(
 
     needs_bank = registry.get("needs").for_mode(mode)
     needs_state = collect_bank_responses(needs_bank, state)
+    needs = None
     if not needs_state.is_complete:
         missing.extend(f"Needs: {item}" for item in needs_state.missing_questions)
-        needs = None
-    else:
+    
+    provision_scores = None
+    calibration_notes: list[str] = []
+    calib_scores = None
+
+    if mode == "full":
+        prov_bank = registry.get("provision").for_mode(mode)
+        prov_state = collect_bank_responses(prov_bank, state)
+        if not prov_state.is_complete:
+            missing.extend(f"Provision: {item}" for item in prov_state.missing_questions)
+        else:
+            provision_scores = QuestionnaireScorer.build_provision_scores(prov_bank, prov_state.responses)
+
+        calib_bank = registry.get("calibration").for_mode(mode)
+        calib_state = collect_bank_responses(calib_bank, state)
+        if not calib_state.is_complete:
+            missing.extend(f"Calibration: {item}" for item in calib_state.missing_questions)
+        else:
+            calib_scores = QuestionnaireScorer.build_calibration_scores(calib_bank, calib_state.responses)
+
+    if needs_state.is_complete:
         needs = QuestionnaireScorer.build_needs_component(needs_bank, needs_state.responses)
-        needs = NeedsAdjustmentService.adjust_needs(needs, psycho)
+        needs = NeedsAdjustmentService.adjust_needs(
+            needs, psycho, calibration_scores=calib_scores, calibration_notes=calibration_notes
+        )
 
     if missing or shadow is None or eros is None or needs is None:
         return BuiltProfile(user=None, missing_inputs=tuple(missing), mode=mode)
@@ -163,6 +185,8 @@ def build_user_profile_from_state(
             eros=eros,
             needs=needs,
             professional=_build_professional(state),
+            provision=provision_scores,
+            calibration_notes=calibration_notes,
         ),
         missing_inputs=(),
         mode=mode,

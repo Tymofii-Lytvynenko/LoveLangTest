@@ -175,6 +175,80 @@ class CompatibilityComparator:
                     )
                 )
 
+        # Evaluate 5 Critical Discussion Flags
+        # 1. Pursuit-Distance Loop
+        pursuit_distance = False
+        if {first_style, second_style} == {AttachmentStyle.ANXIOUS, AttachmentStyle.AVOIDANT}:
+            pursuit_distance = True
+        elif (first.shadow.anxious_score >= 0.45 and second.shadow.avoidant_score >= 0.45) or \
+             (second.shadow.anxious_score >= 0.45 and first.shadow.avoidant_score >= 0.45):
+            pursuit_distance = True
+
+        if pursuit_distance:
+            tensions.append(
+                CompatibilityItem(
+                    title="Цикл Переслідування-Дистанціювання",
+                    detail="Один із партнерів може схилятися до пошуку активного контакту під час стресу, тоді як інший відступає для саморегуляції. Рекомендується встановити передбачуваний протокол відновлення контакту (repair).",
+                    severity="high",
+                )
+            )
+
+        # 2. Expansion-Safety Conflict
+        expansion_safety = (
+            (first_needs["expansion"] >= 0.70 and (second_needs["safety"] >= 0.70 or second.psychometrics.openness.average <= 0.40 or second.psychometrics.extraversion.excitement_seeking <= 0.35)) or
+            (second_needs["expansion"] >= 0.70 and (first_needs["safety"] >= 0.70 or first.psychometrics.openness.average <= 0.40 or first.psychometrics.extraversion.excitement_seeking <= 0.35))
+        )
+        if expansion_safety:
+            tensions.append(
+                CompatibilityItem(
+                    title="Конфлікт Експансії та Безпеки",
+                    detail="Потреба одного з партнерів у новизні та розвитку може викликати тривогу в іншого, для кого пріоритетом є стабільність. Рекомендується спільно узгодити межі експеріментів та зону безпеки.",
+                    severity="medium",
+                )
+            )
+
+        # 3. Resource-Routine Friction
+        resource_routine = (
+            (first_needs["resource"] >= 0.70 and (second_provision["resource"] <= 0.40 or second.psychometrics.conscientiousness.average <= 0.40)) or
+            (second_needs["resource"] >= 0.70 and (first_provision["resource"] <= 0.40 or first.psychometrics.conscientiousness.average <= 0.40))
+        )
+        if resource_routine:
+            tensions.append(
+                CompatibilityItem(
+                    title="Побутове тертя (Ресурс vs Рутина)",
+                    detail="Високий запит на практичну підтримку та організацію побуту стикається з обмеженим виконавчим ресурсом партнера. Це питання ємності та планування, а не дефіциту почуттів.",
+                    severity="medium",
+                )
+            )
+
+        # 4. Resonance-Style Mismatch
+        resonance_style = (
+            (first_needs["resonance"] >= 0.70 and second_provision["resonance"] <= 0.40) or
+            (second_needs["resonance"] >= 0.70 and first_provision["resonance"] <= 0.40)
+        )
+        if resonance_style:
+            tensions.append(
+                CompatibilityItem(
+                    title="Розбіжність стилів резонансу",
+                    detail="Запит на глибоке емоційне або когнітивне спілкування стикається з більш практичним або низьковербальним стилем вираження турботи іншого партнера.",
+                    severity="medium",
+                )
+            )
+
+        # 5. Eros Brake/Pressure Loop
+        eros_brake_pressure = (
+            (first.eros.accelerator >= 0.65 and second.eros.brake >= 0.65) or
+            (second.eros.accelerator >= 0.65 and first.eros.brake >= 0.65)
+        )
+        if eros_brake_pressure:
+            tensions.append(
+                CompatibilityItem(
+                    title="Цикл тиску та сексуального гальмування",
+                    detail="Прагнення до сексуальної близькості через ініціативу одного партнера стикається з високою чутливістю сексуального гальма іншого (через стрес, втому чи тривогу).",
+                    severity="high",
+                )
+            )
+
         score = 1.0 - min(1.0, (total_gap / 4 * 0.55) + (eros_gap / 2 * 0.25) + (len(tensions) * 0.04))
         return CompatibilityReport(
             score=max(0.0, min(1.0, score)),
@@ -194,6 +268,13 @@ class CompatibilityComparator:
 
     @staticmethod
     def _provision(user: UserProfile) -> dict[str, float]:
+        if user.provision is not None:
+            return {
+                "safety": user.provision.get("safety_provision", 0.0),
+                "resource": user.provision.get("resource_provision", 0.0),
+                "resonance": user.provision.get("resonance_provision", 0.0),
+                "expansion": user.provision.get("expansion_provision", 0.0),
+            }
         provision = ProvisionService.analyze(user.psychometrics, user.professional)
         return {
             "safety": provision.safety_score,
