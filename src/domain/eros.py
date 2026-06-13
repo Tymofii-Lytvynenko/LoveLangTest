@@ -9,7 +9,7 @@ class ErosComponent:
     context_dependency: ContextDependency = ContextDependency.LOW
     erotic_tags: List[str] = field(default_factory=list)
 
-    def calculate_from_quiz(self, accel_score: float, brake_score: float):
+    def calculate_from_quiz(self, accel_score: float, brake_score: float) -> None:
         self.accelerator = min(max(accel_score, 0.0), 1.0)
         self.brake = min(max(brake_score, 0.0), 1.0)
         

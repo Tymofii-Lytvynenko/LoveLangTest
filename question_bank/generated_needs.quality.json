@@ -1,0 +1,42 @@
+{
+  "module": "needs",
+  "passed": true,
+  "errors": [],
+  "warnings": [],
+  "metrics": {
+    "question_count": 12,
+    "description_ratio": 1.0,
+    "ukrainian_marker_count": 315,
+    "latin_user_facing_hits": [],
+    "suspicious_russian_hits": [],
+    "banned_term_hits": [],
+    "negative_weight_count": 44,
+    "max_vector_magnitude": 0.9,
+    "tradeoff_question_count": 12,
+    "mixed_direction_question_count": 12,
+    "dominant_counts": {
+      "safety": 10,
+      "resource": 9,
+      "resonance": 8,
+      "expansion": 9
+    },
+    "positive_counts": {
+      "safety": 25,
+      "resource": 20,
+      "resonance": 20,
+      "expansion": 13
+    },
+    "question_primary_counts": {
+      "safety": 2,
+      "resource": 4,
+      "resonance": 2,
+      "expansion": 4
+    },
+    "coverage_clusters": {
+      "safety": 11,
+      "resource": 4,
+      "resonance": 9,
+      "expansion": 5
+    }
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "metadata": {
+    "bank_id": "crnas-eros-core",
+    "version": "1.1.0",
+    "module": "eros",
+    "vector_labels": [
+      "accelerator",
+      "brake"
+    ],
+    "authoring_instructions": "Write questions using the Dual Control Model for a neurodivergent-friendly audience where ADHD, ASD, or AuDHD may be common. Each option must describe how easily desire activates or gets inhibited, and carry a 2-number vector in the order [accelerator, brake]. Use concrete situations like stress, context, arousal triggers, recovery, inhibition, sensory load, interruption, or masking fatigue. Avoid moralizing language, vague metaphors, and assumptions that spontaneity always equals desire."
+  },
+  "questions": [
+    {
+      "id": "eros_01",
+      "question": "Вплив стресу (робота, гроші) на бажання:",
+      "description": "",
+      "options": [
+        {
+          "id": "opt_1",
+          "text": "Стрес повністю вбиває моє лібідо.",
+          "vector": [
+            0.0,
+            1.0
+          ]
+        },
+        {
+          "id": "opt_2",
+          "text": "Секс допомагає мені розслабитися.",
+          "vector": [
+            0.5,
+            0.0
+          ]
+        },
+        {
+          "id": "opt_3",
+          "text": "Залежить від рівня стресу.",
+          "vector": [
+            0.0,
+            0.5
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eros_02",
+      "question": "Спонтанне збудження:",
+      "description": "",
+      "options": [
+        {
+          "id": "opt_1",
+          "text": "Я часто відчуваю збудження 'нізвідки'.",
+          "vector": [
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "id": "opt_2",
+          "text": "Мені потрібен контекст (романтика), щоб відчути бажання.",
+          "vector": [
+            0.3,
+            0.0
+          ]
+        },
+        {
+          "id": "opt_3",
+          "text": "Я рідко думаю про секс, поки партнер не ініціює.",
+          "vector": [
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eros_03",
+      "question": "Умови для сексу (Контекст):",
+      "description": "",
+      "options": [
+        {
+          "id": "opt_1",
+          "text": "Має бути ідеально: чисто, тихо, ніяких відволікань.",
+          "vector": [
+            0.0,
+            0.8
+          ]
+        },
+        {
+          "id": "opt_2",
+          "text": "Ми можемо це зробити де завгодно, умови не важливі.",
+          "vector": [
+            0.8,
+            0.0
+          ]
+        },
+        {
+          "id": "opt_3",
+          "text": "Мені важливо відчувати емоційний зв'язок, решта — деталі.",
+          "vector": [
+            0.5,
+            0.2
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -93,6 +93,20 @@ class PsychometricsComponent:
     has_adhd: bool = False
     has_asd: bool = False
 
+    @property
+    def has_neurodivergence_context(self) -> bool:
+        return self.has_adhd or self.has_asd
+
+    @property
+    def neurodivergence_label(self) -> str | None:
+        if self.has_adhd and self.has_asd:
+            return "AuDHD"
+        if self.has_adhd:
+            return "ADHD"
+        if self.has_asd:
+            return "ASD"
+        return None
+
     @classmethod
     def from_high_level_scores(cls, o: float, c: float, e: float, a: float, n: float, adhd=False, asd=False):
         """Фабрика для створення з 5 загальних цифр (для сумісності зі старим UI)."""

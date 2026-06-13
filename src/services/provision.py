@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from src.domain.psychometrics import PsychometricsComponent
 from src.domain.professional import ProfessionalComponent
 from src.enums import HollandCode
+from src.services.neurodivergence import NeurodivergenceService
 
 @dataclass
 class ProvisionProfile:
@@ -34,8 +35,8 @@ class ProvisionService:
     def _calc_resource(p: PsychometricsComponent, prof: ProfessionalComponent) -> float:
         # Resource = C: Competence + C: Order
         base = (p.conscientiousness.competence + p.conscientiousness.order) / 2
-        
-        if p.has_adhd: base -= 0.15
+        context = NeurodivergenceService.analyze(p)
+        base -= context.resource_provision_penalty
         
         bonus = 0.0
         if prof.primary_type in [HollandCode.ENTERPRISING, HollandCode.REALISTIC, HollandCode.CONVENTIONAL]:
@@ -57,7 +58,10 @@ class ProvisionService:
         
         # Якщо низька A:Compliance (любить сперечатися), це знижує емоційну безпеку
         if p.agreeableness.compliance < 0.3:
-            bonus -= 0.15
+            penalty = 0.15
+            if p.has_asd and p.agreeableness.straightforwardness > 0.5:
+                penalty = 0.08
+            bonus -= penalty
             
         return min(max(base + bonus, 0.0), 1.0)
 

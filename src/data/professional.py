@@ -35,8 +35,6 @@ Relational Impact:
    - Needs: Clear rules/plans.
 """
 
-from .models import QuizQuestion, QuizOption
-
 PROFESSIONAL_EXPLANATIONS = {
     "intro": """
     **Професійний Компас (RIASEC)**
