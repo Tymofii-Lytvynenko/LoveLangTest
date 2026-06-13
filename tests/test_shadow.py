@@ -9,30 +9,29 @@ from src.services.reporting import ReportGenerator
 from src.services.scoring import QuestionnaireScorer
 
 
-def _responses(option_id: str) -> dict[str, str]:
+def _responses(option_index: int) -> dict[str, str]:
+    bank = load_question_bank("shadow")
     return {
-        "att_01": option_id,
-        "att_02": option_id,
-        "att_03": option_id,
-        "att_04": option_id,
+        question.id: question.options[option_index].id
+        for question in bank.questions
     }
 
 
 def test_all_shadow_styles_are_reachable() -> None:
     bank = load_question_bank("shadow")
 
-    assert QuestionnaireScorer.build_shadow_component(bank, _responses("opt_1")).attachment_style == AttachmentStyle.SECURE
-    assert QuestionnaireScorer.build_shadow_component(bank, _responses("opt_2")).attachment_style == AttachmentStyle.ANXIOUS
-    assert QuestionnaireScorer.build_shadow_component(bank, _responses("opt_3")).attachment_style == AttachmentStyle.AVOIDANT
+    assert QuestionnaireScorer.build_shadow_component(bank, _responses(0)).attachment_style == AttachmentStyle.SECURE
+    assert QuestionnaireScorer.build_shadow_component(bank, _responses(1)).attachment_style == AttachmentStyle.ANXIOUS
+    assert QuestionnaireScorer.build_shadow_component(bank, _responses(2)).attachment_style == AttachmentStyle.AVOIDANT
     assert (
-        QuestionnaireScorer.build_shadow_component(bank, _responses("opt_4")).attachment_style
+        QuestionnaireScorer.build_shadow_component(bank, _responses(3)).attachment_style
         == AttachmentStyle.DISORGANIZED
     )
 
 
 def test_disorganized_branch_reaches_report_warning() -> None:
     bank = load_question_bank("shadow")
-    shadow = QuestionnaireScorer.build_shadow_component(bank, _responses("opt_4"))
+    shadow = QuestionnaireScorer.build_shadow_component(bank, _responses(3))
     user = UserProfile(
         name="User",
         psychometrics=PsychometricsComponent.from_high_level_scores(50, 50, 50, 50, 50),

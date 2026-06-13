@@ -5,10 +5,10 @@ from src.question_bank import load_question_bank_from_path
 from src.services.question_bank_quality import QuestionBankQualityGate
 
 
-def _valid_generated_needs_bank() -> dict:
+def _valid_strict_needs_bank() -> dict:
     return {
         "metadata": {
-            "bank_id": "generated-needs",
+            "bank_id": "strict-needs",
             "version": "0.1.0",
             "module": "needs",
             "authoring_instructions": "Generate balanced scenario questions grounded in CRNAS theories.",
@@ -99,34 +99,34 @@ def _valid_generated_needs_bank() -> dict:
     }
 
 
-def test_quality_gate_accepts_balanced_generated_needs_bank(tmp_path: Path) -> None:
-    path = write_json(tmp_path, "generated_needs.json", _valid_generated_needs_bank())
+def test_quality_gate_accepts_balanced_strict_needs_bank(tmp_path: Path) -> None:
+    path = write_json(tmp_path, "strict_needs.json", _valid_strict_needs_bank())
     bank = load_question_bank_from_path(path)
 
-    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=8, strict_generated_bank=True)
+    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=8, strict_content_checks=True)
 
     assert report.passed, report.errors
 
 
 def test_quality_gate_rejects_pseudoscientific_terms(tmp_path: Path) -> None:
-    payload = _valid_generated_needs_bank()
+    payload = _valid_strict_needs_bank()
     payload["questions"][0]["question"] = "Який знак зодіаку найкраще знижує вашу тривогу?"
     path = write_json(tmp_path, "invalid_needs.json", payload)
     bank = load_question_bank_from_path(path)
 
-    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=8, strict_generated_bank=True)
+    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=8, strict_content_checks=True)
 
     assert not report.passed
     assert any("banned" in error.lower() or "pseudo" in error.lower() for error in report.errors)
 
 
 def test_quality_gate_rejects_non_ukrainian_user_facing_text(tmp_path: Path) -> None:
-    payload = _valid_generated_needs_bank()
+    payload = _valid_strict_needs_bank()
     payload["questions"][0]["description"] = "This item checks recovery after conflict."
     path = write_json(tmp_path, "english_needs.json", payload)
     bank = load_question_bank_from_path(path)
 
-    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=8, strict_generated_bank=True)
+    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=8, strict_content_checks=True)
 
     assert not report.passed
     assert any("ukrainian" in error.lower() or "latin" in error.lower() for error in report.errors)
@@ -135,7 +135,7 @@ def test_quality_gate_rejects_non_ukrainian_user_facing_text(tmp_path: Path) -> 
 def test_quality_gate_rejects_unbalanced_shadow_bank(tmp_path: Path) -> None:
     payload = {
         "metadata": {
-            "bank_id": "generated-shadow",
+            "bank_id": "strict-shadow",
             "version": "0.1.0",
             "module": "shadow",
             "authoring_instructions": "Generate attachment questions.",
@@ -191,7 +191,7 @@ def test_quality_gate_rejects_unbalanced_shadow_bank(tmp_path: Path) -> None:
     path = write_json(tmp_path, "invalid_shadow.json", payload)
     bank = load_question_bank_from_path(path)
 
-    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=4, strict_generated_bank=True)
+    report = QuestionBankQualityGate.evaluate(bank, expected_question_count=4, strict_content_checks=True)
 
     assert not report.passed
     assert any("one-hot" in error.lower() or "equally" in error.lower() for error in report.errors)

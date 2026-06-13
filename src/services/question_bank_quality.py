@@ -99,7 +99,7 @@ class QuestionBankQualityGate:
         bank: QuestionBank,
         *,
         expected_question_count: int | None = None,
-        strict_generated_bank: bool = False,
+        strict_content_checks: bool = False,
     ) -> QuestionBankQualityReport:
         blueprint = get_question_bank_blueprint(bank.module)
         report = QuestionBankQualityReport(module=bank.module, passed=True)
@@ -110,9 +110,9 @@ class QuestionBankQualityGate:
             return report
 
         QuestionBankQualityGate._check_count(bank, blueprint, report, expected_question_count)
-        QuestionBankQualityGate._check_descriptions(bank, blueprint, report, strict_generated_bank)
+        QuestionBankQualityGate._check_descriptions(bank, blueprint, report, strict_content_checks)
         QuestionBankQualityGate._check_question_shapes(bank, blueprint, report)
-        QuestionBankQualityGate._check_generated_language(bank, report, strict_generated_bank)
+        QuestionBankQualityGate._check_user_facing_language(bank, report, strict_content_checks)
         QuestionBankQualityGate._check_banned_terms(bank, blueprint, report)
         QuestionBankQualityGate._check_vector_ranges(bank, blueprint, report)
         QuestionBankQualityGate._check_tradeoffs(bank, blueprint, report)
@@ -128,13 +128,13 @@ class QuestionBankQualityGate:
         path: Path,
         *,
         expected_question_count: int | None = None,
-        strict_generated_bank: bool = False,
+        strict_content_checks: bool = False,
     ) -> QuestionBankQualityReport:
         bank = load_question_bank_from_path(path)
         return QuestionBankQualityGate.evaluate(
             bank,
             expected_question_count=expected_question_count,
-            strict_generated_bank=strict_generated_bank,
+            strict_content_checks=strict_content_checks,
         )
 
     @staticmethod
@@ -164,14 +164,14 @@ class QuestionBankQualityGate:
         bank: QuestionBank,
         blueprint: QuestionBankBlueprint,
         report: QuestionBankQualityReport,
-        strict_generated_bank: bool,
+        strict_content_checks: bool,
     ) -> None:
         described = sum(1 for question in bank.questions if question.description.strip())
         ratio = described / len(bank.questions)
         report.add_metric("description_ratio", ratio)
-        if strict_generated_bank and ratio < blueprint.required_description_ratio:
+        if strict_content_checks and ratio < blueprint.required_description_ratio:
             report.errors.append(
-                f"Descriptions are required for generated '{bank.module}' banks. Ratio {ratio:.2f} is below "
+                f"Descriptions are required for strict '{bank.module}' banks. Ratio {ratio:.2f} is below "
                 f"{blueprint.required_description_ratio:.2f}."
             )
 
@@ -201,12 +201,12 @@ class QuestionBankQualityGate:
                 report.errors.append(f"Question '{question.id}' has identical vectors for every option.")
 
     @staticmethod
-    def _check_generated_language(
+    def _check_user_facing_language(
         bank: QuestionBank,
         report: QuestionBankQualityReport,
-        strict_generated_bank: bool,
+        strict_content_checks: bool,
     ) -> None:
-        if not strict_generated_bank:
+        if not strict_content_checks:
             return
 
         all_text_parts: list[str] = []
@@ -260,28 +260,28 @@ class QuestionBankQualityGate:
 
         if missing_cyrillic_fields:
             report.errors.append(
-                "Generated bank must keep all user-facing fields in Ukrainian; missing Cyrillic in: "
+                "Strict bank must keep all user-facing fields in Ukrainian; missing Cyrillic in: "
                 + ", ".join(missing_cyrillic_fields[:8])
                 + ("..." if len(missing_cyrillic_fields) > 8 else "")
             )
 
         if latin_token_hits:
             report.errors.append(
-                "Generated bank contains non-Ukrainian Latin user-facing text: "
+                "Strict bank contains non-Ukrainian Latin user-facing text: "
                 + "; ".join(latin_token_hits[:6])
                 + ("..." if len(latin_token_hits) > 6 else "")
             )
 
         if suspicious_russian_hits:
             report.errors.append(
-                "Generated bank contains suspicious non-Ukrainian / Russian user-facing text: "
+                "Strict bank contains suspicious non-Ukrainian / Russian user-facing text: "
                 + "; ".join(suspicious_russian_hits[:6])
                 + ("..." if len(suspicious_russian_hits) > 6 else "")
             )
 
         if ukrainian_marker_count < max(3, len(bank.questions)):
             report.errors.append(
-                "Generated bank does not look sufficiently Ukrainian in aggregate; rewrite all user-facing content in natural Ukrainian."
+                "Strict bank does not look sufficiently Ukrainian in aggregate; rewrite all user-facing content in natural Ukrainian."
             )
 
     @staticmethod

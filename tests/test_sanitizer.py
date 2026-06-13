@@ -1,17 +1,22 @@
 from src.enums import HollandCode
+from src.question_bank import load_question_bank, question_state_key
 from src.services.sanitizer import StateSanitizer
 
 
 def test_sanitizer_revalidates_state_against_current_bank() -> None:
+    bank = load_question_bank("needs")
+    question = bank.questions[0]
+    answer_key = question_state_key("needs", question.id)
+    answer_value = question.options[0].id
     clean_state, removal_log = StateSanitizer.sanitize(
         incoming_state={
-            "scenario_conf_01": "opt_1",
+            answer_key: answer_value,
             "unknown_field": "bad",
         },
         incoming_bank_fingerprint="old-bank-fingerprint",
     )
 
-    assert clean_state["scenario_conf_01"] == "opt_1"
+    assert clean_state[answer_key] == answer_value
     assert any("іншій версії банку" in item for item in removal_log)
     assert any("невідоме поле" in item for item in removal_log)
 

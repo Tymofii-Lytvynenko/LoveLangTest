@@ -13,7 +13,7 @@ def test_empty_state_keeps_questions_unanswered() -> None:
 def test_complete_state_collects_all_answers() -> None:
     bank = load_question_bank("shadow")
     state = {
-        question_state_key("shadow", question.id): "opt_1"
+        question_state_key("shadow", question.id): question.options[0].id
         for question in bank.questions
     }
 

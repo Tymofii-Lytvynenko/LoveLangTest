@@ -20,7 +20,7 @@ def test_full_single_profile_pipeline_generates_bounded_scores() -> None:
     )
     shadow = QuestionnaireScorer.build_shadow_component(
         shadow_bank,
-        {question.id: "opt_1" for question in shadow_bank.questions},
+        {question.id: question.options[0].id for question in shadow_bank.questions},
     )
     eros = QuestionnaireScorer.build_eros_component(
         eros_bank,

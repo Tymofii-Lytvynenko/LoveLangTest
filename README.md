@@ -44,46 +44,6 @@ Run tests:
 pytest
 ```
 
-## LLM question-bank generation
-
-Install the optional generation stack:
-
-```bash
-pip install -r requirements-llm.txt
-```
-
-Set environment variables:
-
-```bash
-OPENROUTER_API_KEY=...
-OPENROUTER_API_BASE=https://openrouter.ai/api/v1
-OPENROUTER_HTTP_REFERER=https://your-app.example
-OPENROUTER_APP_TITLE=CRNAS Bank Generator
-```
-
-`OPENROUTER_MODEL` is optional. If you do not set it, the generator defaults to `deepseek/deepseek-v4-flash`.
-
-Generate a bank and automatically validate it:
-
-```bash
-python scripts/generate_question_bank.py --module needs --questions 12 --output question_bank/generated_needs.json
-```
-
-Generate all three banks in one pass:
-
-```bash
-python scripts/generate_all_question_banks.py --force --run-full-pytest
-```
-
-The generator will:
-- call OpenRouter through `smolagents`
-- validate the JSON shape against the CRNAS bank schema
-- run balance and evidence-alignment checks
-- require all user-facing questionnaire content to be in Ukrainian
-- run `pytest tests/test_generated_bank_contract.py` against the saved file
-
-Important: these checks are scientific guardrails, not a substitute for expert psychometric review or external validation studies.
-
 ## Question banks
 
 External question banks live in `question_bank/`:
@@ -99,13 +59,41 @@ Each bank includes:
 - `metadata.vector_labels`
 - `questions`
 
-This keeps content separate from scoring logic and makes the banks easy to regenerate with LLMs.
+The active core questionnaire currently contains 40 domain items:
+- `needs.json`: 24 questions, 6 for each SRME dimension
+- `shadow.json`: 8 attachment-strategy questions
+- `eros.json`: 8 Dual Control Model questions
 
-When authoring or regenerating banks, prefer concrete wording over abstract social inference:
+This keeps content separate from scoring logic and makes the banks reviewable without changing code.
+
+When authoring banks, prefer concrete wording over abstract social inference:
 - literal scenarios instead of vibes
 - sensory and executive-load examples where relevant
 - direct communication and repair timing over hidden social rules
 - no assumption that spontaneity, eye contact, multitasking, or clutter tolerance are universally positive
+
+## Methodology
+
+CRNAS is not a diagnostic instrument and is not presented as a validated clinical test. It is a structured compatibility and self-description prototype built from established psychological constructs, then adapted into relationship-specific scenario questions.
+
+The main methodological bases are:
+- Big Five / IPIP-style facets for broad personality tendencies and adjustment factors
+- Attachment theory for closeness, distance, rupture, repair, and threat responses
+- Dual Control Model for sexual excitation and inhibition
+- Self-Determination Theory for autonomy, competence, and relatedness needs
+- Self-Expansion Model for novelty, growth, and shared exploration
+- Social exchange and household-load framing for resource, task, and logistics compatibility
+- Neurodivergent-friendly questionnaire design: literal wording, low inference, sensory load, transition time, executive support, and optional ADHD/ASD/AuDHD context
+
+The project uses custom tests and custom question banks because there is no ready-made validated instrument that measures this exact combination: partner compatibility across practical support, attachment strategy, erotic activation/inhibition, neurodivergent support needs, Big Five facets, and relationship-specific scenario tradeoffs. Existing validated instruments cover parts of the space, but not this integrated compatibility matrix. For that reason CRNAS borrows constructs from established research traditions while keeping the item bank custom, transparent, and locally testable.
+
+Current quality controls are engineering and content guardrails, not final psychometric validation:
+- every bank is schema-validated before use
+- scores are normalized so the number of questions does not inflate results
+- items use forced-choice tradeoffs instead of obvious good/bad answers
+- vectors are balanced across target dimensions
+- all public scores stay within `0..1`
+- tests cover loading, scoring, transport, sanitization, reporting, and active bank quality
 
 ## Profile transport
 
