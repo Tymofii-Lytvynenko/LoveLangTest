@@ -22,7 +22,13 @@ from src.enums import (
     RegulationMethod,
 )
 from src.question_bank import QuestionBank, question_state_key
-from src.services.bigfive_pdf_parser import BigFivePdfParseError, BigFivePdfParser, FACET_SPECS
+from src.services.bigfive_pdf_parser import FACET_SPECS, BigFivePdfParseError
+from src.services.bigfive_state import (
+    apply_bigfive_pdf_scores,
+    clear_bigfive_state,
+    get_bigfive_import_status,
+    get_bigfive_upload_revision,
+)
 from src.services.form_state import collect_bank_responses
 from src.services.scoring import QuestionnaireScorer
 
@@ -35,6 +41,11 @@ def _ensure_enum(enum_token: str | None, enum_class):
 
 def _enum_display(enum_class, enum_token: str) -> str:
     return enum_class[enum_token].value
+
+
+def _state_number(key: str, default: float) -> float:
+    value = st.session_state.get(key, default)
+    return float(value) if isinstance(value, (int, float)) else default
 
 
 def render_info_box(title: str, text: str) -> None:
@@ -50,17 +61,200 @@ def _facet_slider(label: str, obj, attr_name: str, help_text: str, key_prefix: s
     setattr(obj, attr_name, new_val_scaled / 20.0)
 
 
-def _apply_bigfive_pdf_scores_to_state(pdf_bytes: bytes) -> int:
-    parsed = BigFivePdfParser.parse_pdf_bytes(pdf_bytes)
-    for key, value in parsed.raw_scores.items():
-        st.session_state[key] = value
-    for key, value in parsed.high_level_scores.items():
-        st.session_state[key] = value
-    return len(parsed.raw_scores)
+def _psychometrics_from_state(has_adhd: bool, has_asd: bool) -> PsychometricsComponent:
+    psycho = PsychometricsComponent.from_high_level_scores(
+        _state_number("psycho_o", 50.0),
+        _state_number("psycho_c", 50.0),
+        _state_number("psycho_e", 50.0),
+        _state_number("psycho_a", 50.0),
+        _state_number("psycho_n", 50.0),
+        has_adhd,
+        has_asd,
+    )
+    for spec in FACET_SPECS:
+        value = st.session_state.get(spec.session_key)
+        if isinstance(value, (int, float)):
+            domain = getattr(psycho, spec.domain)
+            setattr(domain, spec.attr_name, min(max(float(value) / 20.0, 0.0), 1.0))
+    return psycho
 
 
-def _count_imported_bigfive_facets() -> int:
-    return sum(1 for spec in FACET_SPECS if spec.session_key in st.session_state)
+def _render_bigfive_pdf_import() -> None:
+    import_status = get_bigfive_import_status(st.session_state)
+    upload_revision = get_bigfive_upload_revision(st.session_state)
+    st.markdown("#### Рекомендовано: імпорт Big Five PDF")
+    st.caption("Це найточніший шлях для 30 facets: PDF заповнює і загальні OCEAN-бали, і деталізовані шкали.")
+    uploaded_file = st.file_uploader(
+        "PDF результатів BigFive",
+        type="pdf",
+        key=f"bigfive_pdf_upload_{upload_revision}",
+        help="Підтримується PDF з bigfive-test.com українською мовою. Значення фасетів мають бути у шкалі 0-20.",
+    )
+    import_col, clear_col = st.columns((2, 1))
+    import_requested = import_col.button(
+        "Імпортувати PDF",
+        use_container_width=True,
+        disabled=uploaded_file is None,
+    )
+    clear_requested = clear_col.button(
+        "Скинути PDF-імпорт",
+        use_container_width=True,
+        disabled=not import_status.has_pdf_import,
+    )
+
+    if import_requested and uploaded_file is not None:
+        try:
+            imported_count = apply_bigfive_pdf_scores(
+                st.session_state,
+                uploaded_file.getvalue(),
+                file_name=uploaded_file.name,
+            )
+        except BigFivePdfParseError as exc:
+            st.error(f"Не вдалося розібрати Big Five PDF: {exc}")
+        else:
+            st.success(f"Імпортовано {imported_count} з 30 Big Five facets із `{uploaded_file.name}`.")
+            st.rerun()
+
+    if clear_requested:
+        clear_bigfive_state(st.session_state)
+        st.rerun()
+
+    if import_status.has_pdf_import:
+        file_suffix = f" із `{import_status.import_filename}`" if import_status.import_filename else ""
+        st.info(f"Активний PDF-імпорт: {import_status.facet_count} з 30 facets{file_suffix}.")
+    elif uploaded_file is not None:
+        st.info(f"Файл `{uploaded_file.name}` готовий до імпорту.")
+    else:
+        st.info("Завантажте PDF, щоб не вводити 30 facets вручну.")
+
+
+def _render_neurodivergence_flags() -> tuple[bool, bool]:
+    st.markdown("#### Опційний контекст")
+    st.caption("Прапорці нижче не є діагнозом. Вони лише коригують інтерпретацію сенсорики, структури та підтримки.")
+    col_adhd, col_asd = st.columns(2)
+    with col_adhd:
+        has_adhd = st.checkbox("РДУГ / ADHD", key="psycho_adhd")
+    with col_asd:
+        has_asd = st.checkbox("Аутизм / ASD", key="psycho_asd")
+    return has_adhd, has_asd
+
+
+def _render_high_level_bigfive_inputs() -> None:
+    st.markdown("##### Загальні OCEAN-бали")
+    col1, col2 = st.columns(2)
+    with col1:
+        render_info_box("Openness", EXPLANATIONS["openness"])
+        st.number_input(
+            "Openness (0-100)",
+            0,
+            100,
+            int(_state_number("psycho_o", 50)),
+            help="Відкритість до досвіду. Якщо PDF імпортовано, це середнє з відповідних фасетів.",
+            key="psycho_o",
+        )
+
+        render_info_box("Conscientiousness", EXPLANATIONS["conscientiousness"])
+        st.number_input(
+            "Conscientiousness (0-100)",
+            0,
+            100,
+            int(_state_number("psycho_c", 50)),
+            help="Сумлінність, структура і саморегуляція.",
+            key="psycho_c",
+        )
+
+        render_info_box("Extraversion", EXPLANATIONS["extraversion"])
+        st.number_input(
+            "Extraversion (0-100)",
+            0,
+            100,
+            int(_state_number("psycho_e", 50)),
+            help="Соціальна енергія, темп і позитивна активація.",
+            key="psycho_e",
+        )
+
+    with col2:
+        render_info_box("Agreeableness", EXPLANATIONS["agreeableness"])
+        st.number_input(
+            "Agreeableness (0-100)",
+            0,
+            100,
+            int(_state_number("psycho_a", 50)),
+            help="Довіра, кооперативність і м'якість у взаємодії.",
+            key="psycho_a",
+        )
+
+        render_info_box("Neuroticism", EXPLANATIONS["neuroticism"])
+        st.number_input(
+            "Neuroticism (0-100)",
+            0,
+            100,
+            int(_state_number("psycho_n", 50)),
+            help="Чутливість до стресу, напруги й невизначеності.",
+            key="psycho_n",
+        )
+
+
+def _render_facet_editor(psycho: PsychometricsComponent) -> None:
+    st.caption("Фасети потрібні лише якщо ви хочете вручну перевірити або скоригувати PDF-імпорт.")
+    tab_n, tab_e, tab_o, tab_a, tab_c = st.tabs(
+        ["Neuroticism", "Extraversion", "Openness", "Agreeableness", "Conscientiousness"]
+    )
+
+    with tab_n:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _facet_slider("Anxiety", psycho.neuroticism, "anxiety", "Тривожність", "neur")
+            _facet_slider("Anger", psycho.neuroticism, "hostility", "Ворожість", "neur")
+            _facet_slider("Depression", psycho.neuroticism, "depression", "Депресивність", "neur")
+        with col_b:
+            _facet_slider("Self-Consciousness", psycho.neuroticism, "self_consciousness", "Сором'язливість", "neur")
+            _facet_slider("Immoderation", psycho.neuroticism, "impulsiveness", "Імпульсивність", "neur")
+            _facet_slider("Vulnerability", psycho.neuroticism, "vulnerability", "Вразливість", "neur")
+
+    with tab_e:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _facet_slider("Friendliness", psycho.extraversion, "warmth", "Теплота", "extr")
+            _facet_slider("Gregariousness", psycho.extraversion, "gregariousness", "Компанійськість", "extr")
+            _facet_slider("Assertiveness", psycho.extraversion, "assertiveness", "Асертивність", "extr")
+        with col_b:
+            _facet_slider("Activity Level", psycho.extraversion, "activity", "Активність", "extr")
+            _facet_slider("Excitement Seeking", psycho.extraversion, "excitement_seeking", "Пошук вражень", "extr")
+            _facet_slider("Cheerfulness", psycho.extraversion, "positive_emotions", "Позитивні емоції", "extr")
+
+    with tab_o:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _facet_slider("Imagination", psycho.openness, "fantasy", "Уява", "open")
+            _facet_slider("Artistic Interests", psycho.openness, "aesthetics", "Естетика", "open")
+            _facet_slider("Emotionality", psycho.openness, "feelings", "Емоційність", "open")
+        with col_b:
+            _facet_slider("Adventurousness", psycho.openness, "actions", "Дії", "open")
+            _facet_slider("Intellect", psycho.openness, "ideas", "Ідеї", "open")
+            _facet_slider("Liberalism", psycho.openness, "values", "Цінності", "open")
+
+    with tab_a:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _facet_slider("Trust", psycho.agreeableness, "trust", "Довіра", "agre")
+            _facet_slider("Morality", psycho.agreeableness, "straightforwardness", "Чесність", "agre")
+            _facet_slider("Altruism", psycho.agreeableness, "altruism", "Альтруїзм", "agre")
+        with col_b:
+            _facet_slider("Cooperation", psycho.agreeableness, "compliance", "Поступливість", "agre")
+            _facet_slider("Modesty", psycho.agreeableness, "modesty", "Скромність", "agre")
+            _facet_slider("Sympathy", psycho.agreeableness, "tender_mindedness", "Чуйність", "agre")
+
+    with tab_c:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _facet_slider("Self-Efficacy", psycho.conscientiousness, "competence", "Компетентність", "cons")
+            _facet_slider("Orderliness", psycho.conscientiousness, "order", "Порядок", "cons")
+            _facet_slider("Dutifulness", psycho.conscientiousness, "dutifulness", "Обов'язок", "cons")
+        with col_b:
+            _facet_slider("Achievement", psycho.conscientiousness, "achievement", "Досягнення", "cons")
+            _facet_slider("Self-Discipline", psycho.conscientiousness, "self_discipline", "Самодисципліна", "cons")
+            _facet_slider("Cautiousness", psycho.conscientiousness, "deliberation", "Обережність", "cons")
 
 
 def _render_bank_questions(bank: QuestionBank) -> tuple[dict[str, str], list[str]]:
@@ -85,233 +279,42 @@ def _render_bank_questions(bank: QuestionBank) -> tuple[dict[str, str], list[str
 
 
 def render_big_five_manual() -> PsychometricsComponent:
-    st.header("1. Substrate Layer (Психометрія)")
+    st.header("1. Big Five і нейродивергентний контекст")
     st.markdown(EXPLANATIONS["big_five_intro"])
 
+    import_status = get_bigfive_import_status(st.session_state)
     input_mode = st.radio(
-        "Джерело Big Five:",
+        "Як заповнити Big Five",
         options=["pdf", "manual"],
         index=0,
-        format_func=lambda mode: "PDF імпорт 30 facets" if mode == "pdf" else "Ручне введення",
+        format_func=lambda mode: "Рекомендовано: PDF імпорт" if mode == "pdf" else "Опційно: ручне внесення",
         key="psycho_input_mode",
         horizontal=True,
     )
+
     if input_mode == "pdf":
-        uploaded_file = st.file_uploader(
-            "PDF результатів BigFive",
-            type="pdf",
-            key="bigfive_pdf_upload",
-            help="Завантажте PDF з bigfive-test.com. Фасети 0-20 будуть підтягнуті автоматично.",
-        )
-        if uploaded_file is not None:
-            try:
-                imported_count = _apply_bigfive_pdf_scores_to_state(uploaded_file.getvalue())
-                st.success(f"Імпортовано {imported_count} з 30 Big Five facets.")
-            except BigFivePdfParseError as exc:
-                st.error(f"Не вдалося розібрати Big Five PDF: {exc}")
-        else:
-            imported_count = _count_imported_bigfive_facets()
-            if imported_count:
-                st.info(f"У стані вже є {imported_count} імпортованих facets.")
-            else:
-                st.info("Завантажте PDF, щоб не вводити 30 facets вручну.")
+        _render_bigfive_pdf_import()
+    else:
+        st.info("Ручне внесення корисне, якщо PDF недоступний або потрібно швидко наблизити профіль.")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        render_info_box("Openness", EXPLANATIONS["openness"])
-        openness = st.number_input(
-            "Openness (загальний, 0-100)",
-            0,
-            100,
-            50,
-            help="Відкритість до досвіду",
-            key="psycho_o",
-        )
+    has_adhd, has_asd = _render_neurodivergence_flags()
+    psycho = _psychometrics_from_state(has_adhd, has_asd)
+    show_manual = input_mode == "manual" or import_status.has_pdf_import
 
-        render_info_box("Conscientiousness", EXPLANATIONS["conscientiousness"])
-        conscientiousness = st.number_input(
-            "Conscientiousness (загальний, 0-100)",
-            0,
-            100,
-            50,
-            help="Сумлінність",
-            key="psycho_c",
-        )
-
-        render_info_box("Extraversion", EXPLANATIONS["extraversion"])
-        extraversion = st.number_input(
-            "Extraversion (загальний, 0-100)",
-            0,
-            100,
-            50,
-            help="Екстраверсія",
-            key="psycho_e",
-        )
-
-    with col2:
-        render_info_box("Agreeableness", EXPLANATIONS["agreeableness"])
-        agreeableness = st.number_input(
-            "Agreeableness (загальний, 0-100)",
-            0,
-            100,
-            50,
-            help="Доброзичливість",
-            key="psycho_a",
-        )
-
-        render_info_box("Neuroticism", EXPLANATIONS["neuroticism"])
-        neuroticism = st.number_input(
-            "Neuroticism (загальний, 0-100)",
-            0,
-            100,
-            50,
-            help="Невротизм",
-            key="psycho_n",
-        )
-
-        st.markdown("---")
-        st.caption("Нейродивергентність модифікує алгоритми Safety та Resource.")
-        has_adhd = st.checkbox("РДУГ (ADHD)", key="psycho_adhd")
-        has_asd = st.checkbox("РАС (Autism Spectrum)", key="psycho_asd")
-        st.info(
-            "Ці прапорці опціональні. Вони не ставлять діагноз, а лише допомагають точніше "
-            "інтерпретувати сенсорне навантаження, потребу в структурі та побутову підтримку."
-        )
-
-    psycho = PsychometricsComponent.from_high_level_scores(
-        openness,
-        conscientiousness,
-        extraversion,
-        agreeableness,
-        neuroticism,
-        has_adhd,
-        has_asd,
-    )
-
-    with st.expander("Advanced: 30 фасетів (шкала 0-20)", expanded=input_mode == "pdf"):
-        st.info(
-            "Якщо у вас є деталізовані результати IPIP-NEO або схожого інструменту, "
-            "ви можете скоригувати фасети вручну."
-        )
-
-        tab_n, tab_e, tab_o, tab_a, tab_c = st.tabs(
-            ["Neuroticism", "Extraversion", "Openness", "Agreeableness", "Conscientiousness"]
-        )
-
-        with tab_n:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                _facet_slider("Anxiety", psycho.neuroticism, "anxiety", "Тривожність", "neur")
-                _facet_slider("Anger", psycho.neuroticism, "hostility", "Ворожість", "neur")
-                _facet_slider("Depression", psycho.neuroticism, "depression", "Депресивність", "neur")
-            with col_b:
-                _facet_slider(
-                    "Self-Consciousness",
-                    psycho.neuroticism,
-                    "self_consciousness",
-                    "Сором'язливість",
-                    "neur",
-                )
-                _facet_slider("Immoderation", psycho.neuroticism, "impulsiveness", "Імпульсивність", "neur")
-                _facet_slider("Vulnerability", psycho.neuroticism, "vulnerability", "Вразливість", "neur")
-
-        with tab_e:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                _facet_slider("Friendliness", psycho.extraversion, "warmth", "Теплота", "extr")
-                _facet_slider("Gregariousness", psycho.extraversion, "gregariousness", "Стадність", "extr")
-                _facet_slider("Assertiveness", psycho.extraversion, "assertiveness", "Асертивність", "extr")
-            with col_b:
-                _facet_slider("Activity Level", psycho.extraversion, "activity", "Активність", "extr")
-                _facet_slider(
-                    "Excitement Seeking",
-                    psycho.extraversion,
-                    "excitement_seeking",
-                    "Пошук вражень",
-                    "extr",
-                )
-                _facet_slider(
-                    "Cheerfulness",
-                    psycho.extraversion,
-                    "positive_emotions",
-                    "Позитивні емоції",
-                    "extr",
-                )
-
-        with tab_o:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                _facet_slider("Imagination", psycho.openness, "fantasy", "Уява", "open")
-                _facet_slider("Artistic Interests", psycho.openness, "aesthetics", "Естетика", "open")
-                _facet_slider("Emotionality", psycho.openness, "feelings", "Емоційність", "open")
-            with col_b:
-                _facet_slider("Adventurousness", psycho.openness, "actions", "Дії", "open")
-                _facet_slider("Intellect", psycho.openness, "ideas", "Ідеї", "open")
-                _facet_slider("Liberalism", psycho.openness, "values", "Цінності", "open")
-
-        with tab_a:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                _facet_slider("Trust", psycho.agreeableness, "trust", "Довіра", "agre")
-                _facet_slider(
-                    "Morality",
-                    psycho.agreeableness,
-                    "straightforwardness",
-                    "Чесність",
-                    "agre",
-                )
-                _facet_slider("Altruism", psycho.agreeableness, "altruism", "Альтруїзм", "agre")
-            with col_b:
-                _facet_slider("Cooperation", psycho.agreeableness, "compliance", "Поступливість", "agre")
-                _facet_slider("Modesty", psycho.agreeableness, "modesty", "Скромність", "agre")
-                _facet_slider(
-                    "Sympathy",
-                    psycho.agreeableness,
-                    "tender_mindedness",
-                    "Чуйність",
-                    "agre",
-                )
-
-        with tab_c:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                _facet_slider(
-                    "Self-Efficacy",
-                    psycho.conscientiousness,
-                    "competence",
-                    "Компетентність",
-                    "cons",
-                )
-                _facet_slider("Orderliness", psycho.conscientiousness, "order", "Порядок", "cons")
-                _facet_slider(
-                    "Dutifulness",
-                    psycho.conscientiousness,
-                    "dutifulness",
-                    "Обов'язок",
-                    "cons",
-                )
-            with col_b:
-                _facet_slider("Achievement", psycho.conscientiousness, "achievement", "Досягнення", "cons")
-                _facet_slider(
-                    "Self-Discipline",
-                    psycho.conscientiousness,
-                    "self_discipline",
-                    "Самодисципліна",
-                    "cons",
-                )
-                _facet_slider(
-                    "Cautiousness",
-                    psycho.conscientiousness,
-                    "deliberation",
-                    "Обережність",
-                    "cons",
-                )
+    if show_manual:
+        with st.expander("Опційне ручне уточнення Big Five", expanded=input_mode == "manual"):
+            _render_high_level_bigfive_inputs()
+            psycho = _psychometrics_from_state(has_adhd, has_asd)
+            st.divider()
+            _render_facet_editor(psycho)
+    else:
+        st.caption("Ручні OCEAN-поля та 30 facets приховані, доки ви не оберете ручний режим або не імпортуєте PDF.")
 
     return psycho
 
 
 def render_shadow_form(bank: QuestionBank) -> tuple[ShadowComponent | None, list[str]]:
-    st.header("2. Shadow Component (Захист)")
+    st.header("2. Захисні реакції та прив'язаність")
     st.markdown(SHADOW_EXPLANATIONS["intro"])
 
     input_mode = st.radio(
@@ -372,7 +375,7 @@ def render_shadow_form(bank: QuestionBank) -> tuple[ShadowComponent | None, list
 
 
 def render_eros_form(bank: QuestionBank) -> tuple[ErosComponent | None, list[str]]:
-    st.header("3. Eros Component (Сексуальність)")
+    st.header("3. Eros і тілесний контекст")
     st.markdown(EROS_EXPLANATIONS["intro"])
 
     input_mode = st.radio(
@@ -384,9 +387,10 @@ def render_eros_form(bank: QuestionBank) -> tuple[ErosComponent | None, list[str
     )
 
     erotic_tags = st.multiselect(
-        "Оберіть додаткові тригери/контексти:",
+        "Додаткові тригери/контексти:",
         list(EROS_TAGS_EXPLANATIONS.keys()),
         key="eros_tags",
+        help="Опційний словник контекстів, які можуть пояснювати потяг або комфорт.",
     )
 
     if input_mode == "quiz":
@@ -394,8 +398,9 @@ def render_eros_form(bank: QuestionBank) -> tuple[ErosComponent | None, list[str
         if missing_questions:
             return None, missing_questions
         component = QuestionnaireScorer.build_eros_component(bank, responses, erotic_tags=erotic_tags)
-        st.metric("Accelerator", f"{component.accelerator * 100:.0f}%")
-        st.metric("Brake", f"{component.brake * 100:.0f}%")
+        col_a, col_b = st.columns(2)
+        col_a.metric("Accelerator", f"{component.accelerator * 100:.0f}%")
+        col_b.metric("Brake", f"{component.brake * 100:.0f}%")
         return component, []
 
     accelerator = st.slider("Accelerator", 0.0, 1.0, 0.5, 0.01, key="eros_manual_acc")
@@ -422,7 +427,8 @@ def render_eros_form(bank: QuestionBank) -> tuple[ErosComponent | None, list[str
 
 
 def render_scenarios_engine(bank: QuestionBank) -> tuple[RelationalNeedsComponent | None, list[str]]:
-    st.header("4. Context Layer (Сценарний аналіз)")
+    st.header("4. Життєві сценарії партнерства")
+    st.caption("Цей блок вимірює не абстрактні риси, а типові ситуації: побут, підтримку, конфлікти, темп і близькість.")
     responses, missing_questions = _render_bank_questions(bank)
     if missing_questions:
         return None, missing_questions
@@ -430,7 +436,7 @@ def render_scenarios_engine(bank: QuestionBank) -> tuple[RelationalNeedsComponen
 
 
 def render_professional_compass() -> ProfessionalComponent:
-    st.header("5. Professional Layer (Компас Діяльності)")
+    st.header("5. Робота, ритм і життєвий стиль")
     st.markdown(PROFESSIONAL_EXPLANATIONS["intro"])
 
     all_codes = [code.name for code in HollandCode]
@@ -461,12 +467,13 @@ def render_professional_compass() -> ProfessionalComponent:
         )
 
     career_centrality = st.slider(
-        "Наскільки кар'єра важлива? (Work-Life Balance)",
+        "Наскільки кар'єра впливає на ваш побут і рішення?",
         0.0,
         1.0,
         0.5,
         0.01,
         key="prof_centrality",
+        help="0 означає, що робота майже не визначає стиль життя; 1 означає, що кар'єра сильно структурує час, ресурси й пріоритети.",
     )
 
     return ProfessionalComponent(

@@ -7,7 +7,7 @@ from src.enums import HollandCode
 from src.profile import UserProfile
 from src.question_bank import get_question_bank_registry, question_state_key
 from src.services.compatibility import CompatibilityComparator
-from src.services.profile_builder import build_user_profile_from_state
+from src.services.profile_builder import build_user_profile_from_state, normalize_questionnaire_mode
 
 
 def _complete_state(mode: str, option_index: int = 0) -> dict[str, object]:
@@ -44,6 +44,11 @@ def test_profile_builder_uses_questionnaire_mode_to_require_active_subset() -> N
     assert simple_profile.mode == "simple"
     assert extended_profile.is_complete
     assert extended_profile.mode == "extended"
+
+
+def test_normalize_questionnaire_mode_defaults_to_extended() -> None:
+    assert normalize_questionnaire_mode(None) == "extended"
+    assert normalize_questionnaire_mode("unsupported") == "extended"
 
 
 def test_compatibility_comparator_reports_strengths_and_tensions() -> None:

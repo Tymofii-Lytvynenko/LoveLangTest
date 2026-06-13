@@ -33,7 +33,7 @@ class BuiltProfile:
 
 
 def normalize_questionnaire_mode(raw_mode: object) -> str:
-    return str(raw_mode) if raw_mode in QUESTIONNAIRE_MODES else "simple"
+    return str(raw_mode) if raw_mode in QUESTIONNAIRE_MODES else "extended"
 
 
 def _enum_from_state(state: Mapping[str, Any], key: str, enum_class, default):
