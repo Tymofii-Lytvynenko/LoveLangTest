@@ -72,3 +72,40 @@ def test_loader_rejects_wrong_vector_labels_for_known_module(tmp_path) -> None:
 
     with pytest.raises(QuestionBankValidationError):
         load_question_bank_from_path(path)
+
+
+def test_loader_allows_authoring_metadata_for_non_needs_modules(tmp_path) -> None:
+    payload = {
+        "metadata": {
+            "bank_id": "test-provision",
+            "version": "1.0.0",
+            "module": "provision",
+            "authoring_instructions": "Test instructions",
+            "vector_labels": [
+                "safety_provision",
+                "resource_provision",
+                "resonance_provision",
+                "expansion_provision",
+            ],
+        },
+        "questions": [
+            {
+                "id": "q1",
+                "family": "provision_capacity",
+                "dimension": "safety_provision",
+                "question": "Question 1",
+                "description": "Description 1",
+                "options": [
+                    {"id": "opt_1", "text": "Option 1", "vector": [1.0, 0.0, 0.0, 0.0]},
+                    {"id": "opt_2", "text": "Option 2", "vector": [0.0, 1.0, 0.0, 0.0]},
+                ],
+            }
+        ],
+    }
+    path = write_json(tmp_path, "provision_with_metadata.json", payload)
+
+    bank = load_question_bank_from_path(path)
+
+    assert bank.module == "provision"
+    assert bank.questions[0].family == "provision_capacity"
+    assert bank.questions[0].dimension == "safety_provision"

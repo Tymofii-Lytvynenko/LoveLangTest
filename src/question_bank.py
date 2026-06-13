@@ -297,10 +297,13 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
                     raise QuestionBankValidationError(
                         f"Needs question '{question_id}' in family 'priority' must not declare a fixed dimension."
                     )
-        elif family is not None or dimension is not None:
-            raise QuestionBankValidationError(
-                f"Only needs questions may declare family/dimension metadata; found on '{question_id}'."
-            )
+        else:
+            # Non-needs modules also use family/dimension as authoring metadata.
+            # We only enforce the stricter semantic rules for the needs bank.
+            if dimension is not None and dimension not in vector_labels:
+                raise QuestionBankValidationError(
+                    f"Question '{question_id}' declares unknown dimension '{dimension}'."
+                )
 
         questions.append(
             QuestionItem(
