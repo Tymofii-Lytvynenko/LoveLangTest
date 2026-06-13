@@ -89,8 +89,13 @@ class StateSanitizer:
                     removal_log.append(f"Видалено невалідну відповідь для '{key}'.")
                 continue
 
-            if key in {"shadow_input_mode", "eros_input_mode", "psycho_input_mode"}:
-                valid_modes = {"pdf", "manual"} if key == "psycho_input_mode" else {"quiz", "manual"}
+            if key in {"shadow_input_mode", "eros_input_mode", "psycho_input_mode", "questionnaire_mode"}:
+                if key == "psycho_input_mode":
+                    valid_modes = {"pdf", "manual"}
+                elif key == "questionnaire_mode":
+                    valid_modes = {"simple", "extended"}
+                else:
+                    valid_modes = {"quiz", "manual"}
                 if value in valid_modes:
                     clean_state[key] = value
                 else:

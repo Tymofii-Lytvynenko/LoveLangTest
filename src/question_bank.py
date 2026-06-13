@@ -34,6 +34,7 @@ class QuestionItem:
     question: str
     description: str
     options: tuple[QuestionOption, ...]
+    mode: str = "simple"
 
     def option_ids(self) -> tuple[str, ...]:
         return tuple(option.id for option in self.options)
@@ -90,6 +91,17 @@ class QuestionBank:
             for index in range(self.vector_size):
                 maxes[index] += max(option.vector[index] for option in question.options)
         return tuple(maxes)
+
+    def for_mode(self, mode: str) -> "QuestionBank":
+        if mode not in {"simple", "extended"}:
+            raise QuestionBankValidationError(f"Unsupported questionnaire mode '{mode}'.")
+        if mode == "extended":
+            return self
+        return QuestionBank(
+            metadata=self.metadata,
+            questions=tuple(question for question in self.questions if question.mode == "simple"),
+            fingerprint=self.fingerprint,
+        )
 
 
 @dataclass(frozen=True)
@@ -167,6 +179,9 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
         if question_id in question_ids:
             raise QuestionBankValidationError(f"Duplicate question id '{question_id}'.")
         question_ids.add(question_id)
+        mode = str(raw_question.get("mode", "simple")).strip() or "simple"
+        if mode not in {"simple", "extended"}:
+            raise QuestionBankValidationError(f"Question '{question_id}' has unsupported mode '{mode}'.")
 
         options_raw = raw_question.get("options")
         if not isinstance(options_raw, list) or not options_raw:
@@ -225,6 +240,7 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
                     else ""
                 ),
                 options=tuple(options),
+                mode=mode,
             )
         )
 

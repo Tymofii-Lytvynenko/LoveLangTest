@@ -5,7 +5,9 @@ import streamlit as st
 from src.profile import UserProfile
 from src.question_bank import get_question_bank_registry
 from src.services.adjustment import NeedsAdjustmentService
+from src.services.compatibility import CompatibilityComparator
 from src.services.profile_codec import ProfileCodec, ProfileCodecError
+from src.services.profile_builder import QUESTIONNAIRE_MODE_KEY, build_user_profile_from_state, normalize_questionnaire_mode
 from src.services.reporting import ReportGenerator
 from src.services.sanitizer import StateSanitizer
 from src.ui import (
@@ -111,6 +113,75 @@ def render_profile_export(bank_fingerprint: str) -> None:
         )
 
 
+def render_partner_comparison(bank_fingerprint: str) -> None:
+    with st.sidebar:
+        st.divider()
+        st.header("Порівняння")
+        partner_string = st.text_area(
+            "Рядок профілю партнера",
+            key="partner_profile_transport_input",
+            height=120,
+            help="Вставте compact string іншої людини, щоб підсвітити потенційні збіги та розбіжності.",
+        )
+        compare = st.button("Порівняти профілі", use_container_width=True)
+
+    if not compare:
+        return
+
+    registry = get_question_bank_registry()
+    try:
+        partner_payload = ProfileCodec.decode_string(partner_string)
+    except ProfileCodecError as exc:
+        st.sidebar.error(f"Не вдалося декодувати профіль партнера: {exc}")
+        return
+
+    current_state = StateSanitizer.extract_persistable_state(st.session_state)
+    partner_state, partner_removals = StateSanitizer.sanitize(
+        partner_payload.state,
+        incoming_bank_fingerprint=partner_payload.bank_fingerprint,
+    )
+
+    current_profile = build_user_profile_from_state(current_state, registry, name="Ваш профіль")
+    partner_profile = build_user_profile_from_state(partner_state, registry, name="Профіль партнера")
+
+    if not current_profile.is_complete:
+        st.error("Порівняння недоступне: ваш поточний профіль ще не повністю заповнений.")
+        _render_missing_inputs("Ваш профіль", list(current_profile.missing_inputs[:12]))
+        return
+    if not partner_profile.is_complete:
+        st.error("Порівняння недоступне: профіль партнера неповний або створений для іншої версії анкети.")
+        _render_missing_inputs("Профіль партнера", list(partner_profile.missing_inputs[:12]))
+        return
+
+    report = CompatibilityComparator.compare(current_profile.user, partner_profile.user)
+    st.subheader("Порівняння сумісності")
+    st.metric("Орієнтовний compatibility score", f"{report.score * 100:.0f}%")
+    st.caption(
+        f"Ваш режим: {current_profile.mode}. Режим партнера: {partner_profile.mode}. "
+        "Це скринінг розбіжностей, а не вирок стосункам."
+    )
+    if partner_removals:
+        st.warning(f"Профіль партнера очищено від {len(partner_removals)} несумісних або застарілих полів.")
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        st.write("#### Потенційно сильні місця")
+        if not report.strengths:
+            st.info("Явних сильних збігів за поточними порогами не знайдено.")
+        for item in report.strengths:
+            st.success(f"**{item.title}**\n\n{item.detail}")
+    with col_b:
+        st.write("#### Потенційно проблемні розбіжності")
+        if not report.tensions:
+            st.info("Великих розбіжностей за поточними порогами не знайдено.")
+        for item in report.tensions:
+            st.warning(f"**{item.title}**\n\n{item.detail}")
+    if report.notes:
+        st.write("#### Примітки")
+        for item in report.notes:
+            st.info(f"**{item.title}**\n\n{item.detail}")
+
+
 def _render_missing_inputs(section_name: str, missing_items: list[str]) -> None:
     if not missing_items:
         return
@@ -127,21 +198,34 @@ def main() -> None:
     handle_profile_import()
     st.title("🧬 CRNAS: Comprehensive Relationship Needs Analysis System")
     st.caption(f"App version {CURRENT_VERSION} | Bank fingerprint {registry.fingerprint}")
+    questionnaire_mode = st.radio(
+        "Режим анкети",
+        options=["simple", "extended"],
+        index=0 if normalize_questionnaire_mode(st.session_state.get(QUESTIONNAIRE_MODE_KEY)) == "simple" else 1,
+        format_func=lambda mode: "Простий: 40 core questions" if mode == "simple" else "Розширений: 72 core questions",
+        key=QUESTIONNAIRE_MODE_KEY,
+        horizontal=True,
+        help="Розширений режим додає більше ситуацій для стабільнішого профілю, але потребує більше часу й уваги.",
+    )
+    needs_bank = registry.get("needs").for_mode(questionnaire_mode)
+    shadow_bank = registry.get("shadow").for_mode(questionnaire_mode)
+    eros_bank = registry.get("eros").for_mode(questionnaire_mode)
 
     with st.form("main_form"):
         psycho = render_big_five_manual()
         st.divider()
-        shadow, shadow_missing = render_shadow_form(registry.get("shadow"))
+        shadow, shadow_missing = render_shadow_form(shadow_bank)
         st.divider()
-        eros, eros_missing = render_eros_form(registry.get("eros"))
+        eros, eros_missing = render_eros_form(eros_bank)
         st.divider()
-        raw_needs, needs_missing = render_scenarios_engine(registry.get("needs"))
+        raw_needs, needs_missing = render_scenarios_engine(needs_bank)
         st.divider()
         professional = render_professional_compass()
         st.markdown("---")
         submit = st.form_submit_button("Розрахувати архітектуру", type="primary")
 
     render_profile_export(registry.fingerprint)
+    render_partner_comparison(registry.fingerprint)
 
     if not submit:
         return

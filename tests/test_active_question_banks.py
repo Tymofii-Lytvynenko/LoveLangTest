@@ -5,18 +5,21 @@ from src.services.question_bank_quality import QuestionBankQualityGate
 def test_active_question_bank_sizes_are_intentional() -> None:
     registry = get_question_bank_registry()
 
-    assert len(registry.get("needs").questions) == 24
-    assert len(registry.get("shadow").questions) == 8
-    assert len(registry.get("eros").questions) == 8
+    assert len(registry.get("needs").for_mode("simple").questions) == 24
+    assert len(registry.get("shadow").for_mode("simple").questions) == 8
+    assert len(registry.get("eros").for_mode("simple").questions) == 8
+    assert len(registry.get("needs").for_mode("extended").questions) == 40
+    assert len(registry.get("shadow").for_mode("extended").questions) == 16
+    assert len(registry.get("eros").for_mode("extended").questions) == 16
 
 
 def test_active_question_banks_pass_local_quality_gates() -> None:
     registry = get_question_bank_registry()
 
     expected_counts = {
-        "needs": 24,
-        "shadow": 8,
-        "eros": 8,
+        "needs": 40,
+        "shadow": 16,
+        "eros": 16,
     }
     for module, expected_count in expected_counts.items():
         report = QuestionBankQualityGate.evaluate(
