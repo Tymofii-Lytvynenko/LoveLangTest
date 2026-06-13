@@ -21,6 +21,14 @@ from src.ui import (
 CURRENT_VERSION = "4.0"
 
 
+def render_scope_notice() -> None:
+    st.info(
+        "CRNAS у першу чергу створений для порівняння двох профілів: пошуку потенційних збігів, "
+        "розбіжностей і тем для розмови. Одиночний результат показує вашу позицію в межах поточного "
+        "банку питань, але не є порівнянням із реальною середньою статистикою між людьми."
+    )
+
+
 def _apply_imported_state(clean_state: dict) -> int:
     changes_count = 0
     for key, value in clean_state.items():
@@ -198,6 +206,7 @@ def main() -> None:
     handle_profile_import()
     st.title("🧬 CRNAS: Comprehensive Relationship Needs Analysis System")
     st.caption(f"App version {CURRENT_VERSION} | Bank fingerprint {registry.fingerprint}")
+    render_scope_notice()
     questionnaire_mode = st.radio(
         "Режим анкети",
         options=["simple", "extended"],
@@ -243,6 +252,10 @@ def main() -> None:
     manual = ReportGenerator.generate_manual(user)
 
     st.success("Розрахунок завершено.")
+    st.caption(
+        "Одиночний профіль є self-description у межах цієї анкети. Найкорисніша інтерпретація з'являється "
+        "при порівнянні з профілем іншої людини; відсотки не означають percentile або середнє по популяції."
+    )
 
     result_col, notes_col = st.columns(2)
     with result_col:

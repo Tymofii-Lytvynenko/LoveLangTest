@@ -2,11 +2,37 @@ from typing import Any
 
 from src.enums import AttachmentStyle, RegulationMethod
 from src.profile import UserProfile
+from src.domain.shadow import ShadowComponent
 from src.services.neurodivergence import NeurodivergenceService
 from src.services.provision import ProvisionService
 
 
 class ReportGenerator:
+    @staticmethod
+    def _shadow_warning(shadow: ShadowComponent) -> str:
+        scores = (
+            (AttachmentStyle.SECURE, shadow.secure_score),
+            (AttachmentStyle.ANXIOUS, shadow.anxious_score),
+            (AttachmentStyle.AVOIDANT, shadow.avoidant_score),
+            (AttachmentStyle.DISORGANIZED, shadow.disorganized_score),
+        )
+        ranked_scores = sorted(scores, key=lambda item: item[1], reverse=True)
+        top_style, top_score = ranked_scores[0]
+        second_score = ranked_scores[1][1]
+
+        if top_score <= 0.35 or (top_score - second_score) <= 0.12:
+            return (
+                "Змішаний або слабко виражений патерн прив'язаності: "
+                "окремий стиль поки не домінує."
+            )
+        if top_style == AttachmentStyle.AVOIDANT:
+            return "Схильність до дистанціювання при стресі."
+        if top_style == AttachmentStyle.ANXIOUS:
+            return "Висока потреба в контакті та чутливість до віддалення."
+        if top_style == AttachmentStyle.DISORGANIZED:
+            return "Хаотична реакція на близькість: одночасний потяг і страх."
+        return "Стабільний патерн прив'язаності."
+
     @staticmethod
     def generate_manual(user: UserProfile) -> dict[str, Any]:
         context = NeurodivergenceService.analyze(user.psychometrics)
@@ -27,13 +53,7 @@ class ReportGenerator:
         }
         sorted_needs = sorted(needs_map.items(), key=lambda item: item[1], reverse=True)
 
-        shadow_warning = "Стабільний патерн прив'язаності."
-        if user.shadow.attachment_style == AttachmentStyle.AVOIDANT:
-            shadow_warning = "Схильність до дистанціювання при стресі."
-        elif user.shadow.attachment_style == AttachmentStyle.ANXIOUS:
-            shadow_warning = "Висока потреба в контакті та чутливість до віддалення."
-        elif user.shadow.attachment_style == AttachmentStyle.DISORGANIZED:
-            shadow_warning = "Хаотична реакція на близькість: одночасний потяг і страх."
+        shadow_warning = ReportGenerator._shadow_warning(user.shadow)
 
         if user.shadow.regulation_method == RegulationMethod.AUTO_REGULATION:
             shadow_warning += " Потребує часу на самоті для відновлення."
