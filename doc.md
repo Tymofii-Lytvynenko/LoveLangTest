@@ -253,6 +253,381 @@ To populate these components, the survey must use **Scenario-Based Inquiries** r
   * B) We debate until we find the logical truth, even if it gets heated. (Maps to: *Resonance (Cognitive) > Safety*)
   * C) My partner listens to my feelings about the topic. (Maps to: *Resonance (Emotional)*)
 
+### **5.1. Full 100-Item Bank Plan**
+
+CRNAS uses a 100-item Full Mode for practical dyadic comparison. This mode is not intended to create population percentiles or diagnostic labels. Its purpose is to produce a dense, construct-referenced map of a person's needs, provision capacities, regulation strategies, and context sensitivities, so that two profiles can be compared through Need-Provision Fit.
+
+The 100-item bank is divided as follows:
+
+| Block | Items | Purpose |
+|---|---:|---|
+| SRME Needs | 40 | Measures what the respondent needs from a relationship |
+| Shadow / Regulation | 16 | Measures likely regulation and conflict-response strategies |
+| Eros / Context | 16 | Measures activation, inhibition, and context-dependency patterns |
+| Provision / Capacity | 20 | Measures what the respondent can realistically provide to a partner |
+| Consistency / Calibration | 8 | Detects contradiction, situational dependency, and confidence limits |
+| **Total** | **100** | Full dyadic compatibility profile |
+
+The 100-item mode should be treated as the recommended profile for serious partner comparison. Shorter modes may be used for first-pass screening, but they should produce lower-confidence outputs.
+
+#### **5.1.1. SRME Needs Block — 40 items**
+
+The SRME Needs block measures the respondent's own relational requirements.
+
+Target dimensions:
+
+- Safety
+- Resource
+- Resonance
+- Expansion
+
+Recommended structure:
+
+| Item family | Items | Distribution |
+|---|---:|---|
+| Absolute need-intensity items | 24 | 6 per SRME dimension |
+| Priority / Best-Worst tradeoff items | 16 | repeated SRME tradeoff blocks |
+| **Total** | **40** | 10 usable signals per SRME dimension |
+
+Absolute items measure the strength of one need in one concrete situation. Priority items measure which need wins when not all needs can be satisfied at the same time.
+
+Absolute item rule:
+
+- one scenario;
+- one target dimension;
+- four ordered anchors;
+- vector values only on the target dimension;
+- no moral ranking;
+- no hidden “healthy answer”.
+
+Recommended anchors:
+
+```text
+0.0000 = almost not needed
+0.3333 = sometimes helpful
+0.6667 = important
+1.0000 = critical / required before contact can continue normally
+```
+
+Priority item rule:
+
+* one realistic tradeoff situation;
+* four balanced options;
+* one option mapped to each SRME dimension;
+* respondent selects the most important and least critical option;
+* no option should sound more mature, responsible, or morally correct than the others.
+
+Priority scores should be interpreted as relative salience under constraint, not as absolute need intensity.
+
+#### **5.1.2. Shadow / Regulation Block — 16 items**
+
+The Shadow / Regulation block measures likely attachment and conflict-response strategies. It must not diagnose attachment style, trauma, or personality pathology.
+
+Target vectors:
+
+* secure
+* anxious
+* avoidant
+* disorganized
+
+Recommended coverage:
+
+| Context                            |  Items |
+| ---------------------------------- | -----: |
+| Ambiguous distance / delayed reply |      2 |
+| Conflict escalation                |      2 |
+| Criticism / shame trigger          |      2 |
+| Need for closeness vs autonomy     |      2 |
+| Repair after rupture               |      2 |
+| Partner overwhelm or withdrawal    |      2 |
+| Boundary negotiation               |      2 |
+| Stress, fatigue, or shutdown       |      2 |
+| **Total**                          | **16** |
+
+Each item should present one relational stressor and four plausible responses. The options should describe behavior, not identity.
+
+Bad wording:
+
+```text
+I am needy.
+I am cold.
+I am broken.
+I am healthy.
+```
+
+Good wording:
+
+```text
+I ask directly what happened and wait for a clear answer.
+I start checking whether the connection is at risk.
+I withdraw until I can think clearly.
+I want contact and fear it at the same time.
+```
+
+The secure option may represent a more regulated strategy, but it must not be written as morally superior.
+
+#### **5.1.3. Eros / Context Block — 16 items**
+
+The Eros / Context block measures erotic activation and inhibition patterns using the Dual Control Model logic.
+
+Target vectors:
+
+* accelerator
+* brake
+
+Recommended coverage:
+
+| Context                              |  Items |
+| ------------------------------------ | -----: |
+| Emotional safety and trust           |      2 |
+| Stress and fatigue                   |      2 |
+| Novelty and play                     |      2 |
+| Pressure, expectation, or obligation |      2 |
+| Sensory comfort / sensory overload   |      2 |
+| Initiation and responsiveness        |      2 |
+| Recovery, aftercare, and pacing      |      2 |
+| Autonomy, consent, and interruption  |      2 |
+| **Total**                            | **16** |
+
+Items may load on both vectors when the option implies mixed activation and inhibition. For example, an option may indicate high desire under safe conditions but strong inhibition under pressure.
+
+Eros items must never moralize:
+
+* low desire;
+* responsive desire;
+* need for context;
+* sensory sensitivity;
+* need for predictability;
+* need for aftercare;
+* reduced desire under stress.
+
+The output must describe context patterns, not sexual worth, normality, or adequacy.
+
+#### **5.1.4. Provision / Capacity Block — 20 items**
+
+The Provision / Capacity block is required for stronger dyadic comparison. It measures what the respondent can realistically and sustainably provide to a partner.
+
+This block should mirror SRME, but from the provider side.
+
+Target dimensions:
+
+* safety_provision
+* resource_provision
+* resonance_provision
+* expansion_provision
+
+Recommended structure:
+
+| Provision vector    |  Items | Measures                                                                               |
+| ------------------- | -----: | -------------------------------------------------------------------------------------- |
+| Safety provision    |      5 | ability to provide predictability, repair, calm tone, emotional safety                 |
+| Resource provision  |      5 | ability to provide practical help, planning, task-sharing, executive support           |
+| Resonance provision |      5 | ability to provide attention, conversation, validation, cognitive/emotional attunement |
+| Expansion provision |      5 | ability to provide novelty, autonomy, exploration, growth, freedom                     |
+| **Total**           | **20** | partner-facing capacity map                                                            |
+
+Provision items must distinguish willingness, capacity, and sustainability.
+
+A person may want to provide a form of support but be unable to do it consistently. The scoring should therefore prefer concrete behavior over ideal self-image.
+
+Bad item:
+
+```text
+Are you a supportive partner?
+```
+
+Good item:
+
+```text
+When your partner is overwhelmed and asks for a clear plan, how realistically can you help create structure without becoming controlling or resentful?
+```
+
+Provision scoring should use behavioral anchors:
+
+```text
+0.0000 = rarely able / drains me quickly
+0.3333 = possible in easy conditions
+0.6667 = usually able with reasonable limits
+1.0000 = strong and sustainable capacity
+```
+
+Need-Provision comparison should use both directions:
+
+```text
+UserA.need.safety       ↔ UserB.capacity.safety_provision
+UserB.need.safety       ↔ UserA.capacity.safety_provision
+
+UserA.need.resource     ↔ UserB.capacity.resource_provision
+UserB.need.resource     ↔ UserA.capacity.resource_provision
+
+UserA.need.resonance    ↔ UserB.capacity.resonance_provision
+UserB.need.resonance    ↔ UserA.capacity.resonance_provision
+
+UserA.need.expansion    ↔ UserB.capacity.expansion_provision
+UserB.need.expansion    ↔ UserA.capacity.expansion_provision
+```
+
+This prevents the system from falsely assuming that low personal need means high provision capacity.
+
+#### **5.1.5. Consistency / Calibration Block — 8 items**
+
+The Consistency / Calibration block does not create a personality label. It controls confidence.
+
+Recommended coverage:
+
+| Calibration target                                     | Items |
+| ------------------------------------------------------ | ----: |
+| Stability across stress vs calm conditions             |     2 |
+| Difference between ideal answer and realistic behavior |     2 |
+| Context dependency                                     |     2 |
+| Contradiction between need and priority                |     2 |
+| **Total**                                              | **8** |
+
+Calibration items should detect cases such as:
+
+* the respondent reports high Safety in absolute items but repeatedly deprioritizes Safety in tradeoff items;
+* the respondent reports low need for support but high distress when support is absent;
+* the respondent reports high provision capacity but only under ideal conditions;
+* the respondent reports stable eros activation but strong inhibition under stress or pressure.
+
+The system should not simply average contradictions away. It should report them.
+
+Example output:
+
+```text
+The profile shows a possible contradiction: Safety is high in direct scenarios but often deprioritized in tradeoff choices. This may mean Safety is only consciously visible under stress, or that the respondent values autonomy and competence so strongly that they underreport safety needs until overloaded.
+```
+
+#### **5.1.6. Minimum signal rule**
+
+A vector should not be interpreted strongly unless it has enough independent item signals.
+
+Recommended confidence thresholds:
+
+| Confidence | Requirement                                           |
+| ---------- | ----------------------------------------------------- |
+| Low        | fewer than 6 usable signals, or strong contradictions |
+| Medium     | 6–7 usable signals with partial coherence             |
+| High       | 8–10+ usable signals with coherent response patterns  |
+
+For the Full 100-item bank:
+
+* SRME needs should reach high confidence.
+* Provision vectors should reach medium-to-high confidence.
+* Shadow and Eros should reach at least medium confidence.
+* Calibration items should modify confidence, not replace domain scoring.
+
+#### **5.1.7. Difference interpretation for dyadic comparison**
+
+CRNAS should avoid absolute compatibility claims. Differences should be interpreted as discussion signals.
+
+For normalized `0.0–1.0` scores:
+
+|  Difference | Interpretation                                            |
+| ----------: | --------------------------------------------------------- |
+| `0.00–0.14` | minor or probably not meaningful                          |
+| `0.15–0.29` | noticeable difference; worth discussing                   |
+| `0.30–0.49` | meaningful mismatch or complementarity                    |
+|     `0.50+` | critical gap; requires explicit agreement or compensation |
+
+These thresholds are heuristic. They are not population-validated cutoffs.
+
+Need-Provision gaps should be prioritized over Need-Need differences. A couple may have different needs and still function well if each person can provide what the other person strongly needs.
+
+#### **5.1.8. Item construction methodology**
+
+Every item must be created from a construct map before wording is drafted.
+
+Each item card should document:
+
+```yaml
+id:
+module:
+family:
+target_vector:
+secondary_vector:
+scenario_context:
+construct_definition:
+response_process_hypothesis:
+scoring_rationale:
+neurodivergence_risk:
+social_desirability_risk:
+moral_ranking_risk:
+review_status:
+bank_version:
+```
+
+Item-writing rules:
+
+1. Use one scenario per item.
+2. Measure one primary construct per item.
+3. Avoid abstract identity claims.
+4. Prefer concrete relational situations.
+5. Keep all options similarly attractive and similarly specific.
+6. Avoid moralized wording.
+7. Avoid clinical labels in user-facing text.
+8. Avoid double-barreled options.
+9. Avoid assumptions about gender, culture, neurotype, sexuality, or relationship model.
+10. Do not treat directness, solitude, sensory limits, delayed processing, or low spontaneity as deficits.
+11. Do not ask for trauma disclosure unless the item has a specific safety rationale.
+12. Every option must be plausible for a reasonable respondent.
+
+#### **5.1.9. Bank balancing rules**
+
+The 100-item bank must be balanced by:
+
+* module;
+* vector;
+* scenario context;
+* emotional intensity;
+* option length;
+* positive/negative framing;
+* neurodivergence accessibility;
+* partner-facing vs self-facing perspective.
+
+No single SRME vector should be overrepresented in high-stress scenarios. For example, Safety should not be the only dimension tested under conflict, and Expansion should not be tested only through pleasant novelty. Each dimension should appear in both easy and difficult contexts.
+
+Recommended SRME context coverage:
+
+| Context                | Safety | Resource | Resonance | Expansion |
+| ---------------------- | -----: | -------: | --------: | --------: |
+| conflict / repair      |    yes |      yes |       yes |       yes |
+| fatigue / overload     |    yes |      yes |       yes |       yes |
+| daily routine          |    yes |      yes |       yes |       yes |
+| planning / uncertainty |    yes |      yes |       yes |       yes |
+| closeness / distance   |    yes |      yes |       yes |       yes |
+| novelty / change       |    yes |      yes |       yes |       yes |
+
+#### **5.1.10. Validation status and claims**
+
+The 100-item Full Mode may support structured dyadic hypotheses. It must not claim:
+
+* clinical diagnosis;
+* population percentile;
+* predictive validity for relationship success;
+* objective ranking of partners;
+* universal compatibility percentage.
+
+Allowed claims:
+
+```text
+This result is a structured self-assessment profile.
+This result maps needs, capacities, regulation patterns, and context sensitivities.
+This result can support partner discussion.
+This result can identify likely mismatch zones.
+This result is not a diagnosis or a population-normed test.
+```
+
+#### **5.1.11. Recommended implementation modes**
+
+CRNAS should support three modes:
+
+| Mode     | Items | Use                           |
+| -------- | ----: | ----------------------------- |
+| Simple   |    40 | fast first-pass screening     |
+| Extended |    72 | stable self-description       |
+| Full     |   100 | recommended dyadic comparison |
+
 ## **6. Output Generation (The "User Manual")**
 
 The final output is a structural directive, not a label.
