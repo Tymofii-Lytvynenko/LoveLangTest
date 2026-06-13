@@ -83,26 +83,29 @@ When authoring banks, prefer concrete wording over abstract social inference:
 
 ## Methodology
 
-CRNAS is not a diagnostic instrument and is not presented as a validated clinical test. It is a structured compatibility and self-description prototype built from established psychological constructs, then adapted into relationship-specific scenario questions.
+CRNAS is not a diagnostic instrument and is not presented as a validated clinical test. It is a structured compatibility and self-description prototype: the constructs come from established research traditions, while the relationship-specific item bank is custom, transparent, and testable.
 
-The main methodological bases are:
-- Big Five / IPIP-style facets for broad personality tendencies and adjustment factors
-- Attachment theory for closeness, distance, rupture, repair, and threat responses
-- Dual Control Model for sexual excitation and inhibition
-- Self-Determination Theory for autonomy, competence, and relatedness needs
-- Self-Expansion Model for novelty, growth, and shared exploration
-- Social exchange and household-load framing for resource, task, and logistics compatibility
-- Neurodivergent-friendly questionnaire design: literal wording, low inference, sensory load, transition time, executive support, and optional ADHD/ASD/AuDHD context
+The current model combines:
+- Big Five / [IPIP](https://ipip.ori.org/) facets for broad personality tendencies, because the five-factor model is one of the most replicated personality taxonomies and IPIP provides open, reviewable public-domain item pools.
+- Attachment theory and adult romantic attachment research, especially Hazan and Shaver's attachment framing of romantic love ([DOI](https://doi.org/10.1037/0022-3514.52.3.511)), because compatibility often depends on closeness, distance, rupture, repair, and threat responses.
+- The Dual Control Model of sexual response ([Bancroft and Janssen, 2000](https://doi.org/10.1080/00224490009552075)), because erotic compatibility is better modeled as excitation plus inhibition/context rather than as a single libido score.
+- Self-Determination Theory ([Deci and Ryan, 2000](https://doi.org/10.1037/0003-066X.55.1.68)), because autonomy, competence, and relatedness are well-established psychological needs relevant to support, pressure, and repair.
+- Self-Expansion research on close relationships and shared novel activity ([Aron et al., 2000](https://doi.org/10.1037/0022-3514.78.2.273)), because long-term compatibility also includes growth, curiosity, novelty, and shared exploration.
+- Social exchange / investment-model thinking ([Rusbult, 1980](https://doi.org/10.1037/0022-3514.38.1.172)) for practical reciprocity, effort, task load, and resource compatibility.
+- Interest and lifestyle structure inspired by RIASEC-style interest models, using [O*NET Interest Profiler](https://www.onetcenter.org/IP.html) as an authoritative applied reference.
+- Neurodivergent-friendly questionnaire design informed by clinical guidance on ADHD and autism support needs, including [NICE ADHD guideline NG87](https://www.nice.org.uk/guidance/ng87) and [NICE autism guideline CG142](https://www.nice.org.uk/guidance/cg142): literal wording, low hidden inference, sensory-load examples, transition time, executive support, and optional ADHD/ASD/AuDHD context.
 
-The project uses custom tests and custom question banks because there is no ready-made validated instrument that measures this exact combination: partner compatibility across practical support, attachment strategy, erotic activation/inhibition, neurodivergent support needs, Big Five facets, and relationship-specific scenario tradeoffs. Existing validated instruments cover parts of the space, but not this integrated compatibility matrix. For that reason CRNAS borrows constructs from established research traditions while keeping the item bank custom, transparent, and locally testable.
+Custom tests are used because no ready-made validated instrument currently measures this exact integrated matrix: partner compatibility across practical support, attachment strategy, erotic activation/inhibition, neurodivergent support needs, Big Five facets, interests, and relationship-specific scenario tradeoffs. Existing validated tools cover parts of the space, but not the full product goal. Therefore CRNAS borrows reliable constructs from established literature, keeps scoring explicit, and treats the current output as structured conversation guidance rather than a final psychometric diagnosis.
 
 Current quality controls are engineering and content guardrails, not final psychometric validation:
-- every bank is schema-validated before use
-- scores are normalized so the number of questions does not inflate results
-- items use forced-choice tradeoffs instead of obvious good/bad answers
-- vectors are balanced across target dimensions
-- all public scores stay within `0..1`
-- tests cover loading, scoring, transport, sanitization, reporting, and active bank quality
+- question banks are schema-validated before use
+- public scores are normalized to `0..1`, so adding more questions does not inflate results
+- items use concrete forced-choice tradeoffs instead of obvious good/bad answers
+- vectors are balanced across target dimensions and checked by tests
+- profile transport uses checksums and bank fingerprints
+- tests cover loading, scoring, transport, sanitization, reporting, comparison, and active bank quality
+
+Future scientific validation should follow modern scale-development and measurement-quality standards such as [Boateng et al. on scale development](https://doi.org/10.3389/fpubh.2018.00149) and the [COSMIN](https://www.cosmin.nl/) framework: expert review, cognitive interviews, pilot data, reliability analysis, construct validity, measurement invariance, and outcome validation.
 
 ## Compatibility comparison
 
