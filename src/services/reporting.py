@@ -1,14 +1,21 @@
 from typing import Any
 
+from src.domain.shadow import ShadowComponent
 from src.enums import AttachmentStyle, RegulationMethod
 from src.profile import UserProfile
-from src.domain.shadow import ShadowComponent
 from src.services.neurodivergence import NeurodivergenceService
 from src.services.provision import ProvisionService
 from src.services.shadow_analysis import analyze_shadow
 
 
 class ReportGenerator:
+    NEED_DESCRIPTIONS = {
+        "Безпека (Safety)": "Передбачуваність, емоційна безпека, паузи, межі й відновлення після перевантаження.",
+        "Ресурс (Resource)": "Практична опора, побутова координація, видимий розподіл навантаження й зниження тертя.",
+        "Резонанс (Resonance)": "Точне розуміння, уважне слухання, спільне осмислення і якісний repair після напруги.",
+        "Експансія (Expansion)": "Новизна, інтерес, рух, спільні відкриття й відчуття розвитку у стосунках.",
+    }
+
     @staticmethod
     def _shadow_warning(shadow: ShadowComponent) -> str:
         signal = analyze_shadow(shadow)
@@ -46,8 +53,19 @@ class ReportGenerator:
         }
         sorted_needs = sorted(needs_map.items(), key=lambda item: item[1], reverse=True)
 
-        shadow_warning = ReportGenerator._shadow_warning(user.shadow)
+        priority_map = {
+            "Безпека (Safety)": user.needs.priority_safety,
+            "Ресурс (Resource)": user.needs.priority_resource,
+            "Резонанс (Resonance)": user.needs.priority_resonance,
+            "Експансія (Expansion)": user.needs.priority_expansion,
+        }
+        sorted_priority = sorted(
+            priority_map.items(),
+            key=lambda item: (item[1], needs_map[item[0]]),
+            reverse=True,
+        )
 
+        shadow_warning = ReportGenerator._shadow_warning(user.shadow)
         if user.shadow.regulation_method == RegulationMethod.AUTO_REGULATION:
             shadow_warning += " Потребує часу на самоті для відновлення."
 
@@ -69,6 +87,11 @@ class ReportGenerator:
             "primary_driver": sorted_needs[0],
             "secondary_driver": sorted_needs[1],
             "scores": needs_map,
+            "priority_scores": priority_map,
+            "priority_top": sorted_priority[0],
+            "priority_secondary": sorted_priority[1],
+            "priority_order": [label for label, _ in sorted_priority],
+            "need_descriptions": ReportGenerator.NEED_DESCRIPTIONS,
             "shadow_warning": shadow_warning,
             "erotic_key": (
                 f"Accelerator: {int(user.eros.accelerator * 100)}% | "

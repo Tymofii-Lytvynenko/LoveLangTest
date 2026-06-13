@@ -74,12 +74,20 @@ class StateSanitizer:
         registry = get_question_bank_registry()
 
         if incoming_bank_fingerprint and incoming_bank_fingerprint != registry.fingerprint:
-            removal_log.append("Профіль створений на іншій версії банку питань. Дані перевірені повторно.")
+            removal_log.append(
+                "Профіль створений на іншій версії банку питань. Старі результати можуть бути несумісні, "
+                "тому для точної інтерпретації анкету варто пройти заново."
+            )
 
         valid_question_values: dict[str, set[str]] = {}
         for bank in registry.banks.values():
             for question in bank.questions:
-                valid_question_values[question_state_key(bank.module, question.id)] = set(question.option_ids())
+                option_ids = set(question.option_ids())
+                if question.is_best_worst:
+                    valid_question_values[question_state_key(bank.module, question.id, "best")] = option_ids
+                    valid_question_values[question_state_key(bank.module, question.id, "worst")] = option_ids
+                else:
+                    valid_question_values[question_state_key(bank.module, question.id)] = option_ids
 
         for key, value in incoming_state.items():
             if key in valid_question_values:
@@ -182,6 +190,19 @@ class StateSanitizer:
                 continue
 
             removal_log.append(f"Видалено невідоме поле '{key}'.")
+
+        for bank in registry.banks.values():
+            for question in bank.questions:
+                if not question.is_best_worst:
+                    continue
+                best_key = question_state_key(bank.module, question.id, "best")
+                worst_key = question_state_key(bank.module, question.id, "worst")
+                if clean_state.get(best_key) == clean_state.get(worst_key) and best_key in clean_state:
+                    clean_state.pop(best_key, None)
+                    clean_state.pop(worst_key, None)
+                    removal_log.append(
+                        f"Видалено некоректну пару best/worst для '{question.id}': не можна обрати той самий варіант двічі."
+                    )
 
         return clean_state, removal_log
 

@@ -39,3 +39,30 @@ def test_sanitizer_keeps_bigfive_pdf_input_mode() -> None:
 
     assert not removal_log
     assert clean_state["psycho_input_mode"] == "pdf"
+
+
+def test_sanitizer_validates_best_worst_pairs() -> None:
+    bank = load_question_bank("needs")
+    priority_q = next(q for q in bank.questions if q.is_best_worst)
+    best_key = question_state_key("needs", priority_q.id, "best")
+    worst_key = question_state_key("needs", priority_q.id, "worst")
+
+    # 1. Valid distinct choices
+    incoming = {
+        best_key: "opt_safety",
+        worst_key: "opt_resource",
+    }
+    clean_state, removal_log = StateSanitizer.sanitize(incoming)
+    assert not removal_log
+    assert clean_state[best_key] == "opt_safety"
+    assert clean_state[worst_key] == "opt_resource"
+
+    # 2. Invalid duplicate choices (same option for best and worst)
+    incoming_duplicate = {
+        best_key: "opt_safety",
+        worst_key: "opt_safety",
+    }
+    clean_state_dup, removal_log_dup = StateSanitizer.sanitize(incoming_duplicate)
+    assert any("не можна обрати той самий варіант двічі" in item for item in removal_log_dup)
+    assert best_key not in clean_state_dup
+    assert worst_key not in clean_state_dup

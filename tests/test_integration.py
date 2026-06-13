@@ -2,7 +2,7 @@ from src.domain.professional import ProfessionalComponent
 from src.domain.psychometrics import PsychometricsComponent
 from src.enums import HollandCode
 from src.profile import UserProfile
-from src.question_bank import get_question_bank_registry
+from src.question_bank import get_question_bank_registry, QuestionResponse
 from src.services.adjustment import NeedsAdjustmentService
 from src.services.reporting import ReportGenerator
 from src.services.scoring import QuestionnaireScorer
@@ -14,9 +14,16 @@ def test_full_single_profile_pipeline_generates_bounded_scores() -> None:
     shadow_bank = registry.get("shadow")
     eros_bank = registry.get("eros")
 
+    needs_responses = {}
+    for question in needs_bank.questions:
+        if question.is_best_worst:
+            needs_responses[question.id] = QuestionResponse.best_worst("opt_safety", "opt_resource")
+        else:
+            needs_responses[question.id] = "opt_1"
+
     needs = QuestionnaireScorer.build_needs_component(
         needs_bank,
-        {question.id: "opt_1" for question in needs_bank.questions},
+        needs_responses,
     )
     shadow = QuestionnaireScorer.build_shadow_component(
         shadow_bank,

@@ -29,8 +29,14 @@ def _complete_state(mode: str, option_index: int = 0) -> dict[str, object]:
     for module in ("needs", "shadow", "eros"):
         bank = registry.get(module).for_mode(mode)
         for question in bank.questions:
-            option = question.options[min(option_index, len(question.options) - 1)]
-            state[question_state_key(module, question.id)] = option.id
+            if question.is_best_worst:
+                best_idx = option_index % len(question.options)
+                worst_idx = (option_index + 1) % len(question.options)
+                state[question_state_key(module, question.id, "best")] = question.options[best_idx].id
+                state[question_state_key(module, question.id, "worst")] = question.options[worst_idx].id
+            else:
+                option = question.options[min(option_index, len(question.options) - 1)]
+                state[question_state_key(module, question.id)] = option.id
     return state
 
 

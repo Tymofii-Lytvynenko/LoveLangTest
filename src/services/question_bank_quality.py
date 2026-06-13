@@ -5,16 +5,28 @@ from pathlib import Path
 from typing import Any
 import json
 import math
+import random
 import re
 
-from src.question_bank import QuestionBank, load_question_bank_from_path
+from src.question_bank import QuestionBank, QuestionResponse, load_question_bank_from_path
 from src.question_bank_blueprints import QuestionBankBlueprint, get_question_bank_blueprint
+from src.services.scoring import QuestionnaireScorer
 
 
 _WORD_RE = re.compile(r"[A-Za-zА-Яа-яІіЇїЄєҐґ0-9']+")
 _LATIN_WORD_RE = re.compile(r"[A-Za-z][A-Za-z'/-]*")
 _CYRILLIC_RE = re.compile(r"[А-Яа-яІіЇїЄєҐґ]")
-_ALLOWED_LATIN_USER_FACING_TOKENS = {"adhd", "asd", "audhd", "crnas"}
+_ALLOWED_LATIN_USER_FACING_TOKENS = {
+    "adhd",
+    "asd",
+    "audhd",
+    "crnas",
+    "repair",
+    "trade-off",
+    "shutdown",
+    "special",
+    "interest",
+}
 _RUSSIAN_SPECIFIC_CHARS = set("ыэёъ")
 _SUSPICIOUS_RUSSIAN_TOKENS = {
     "что",
@@ -332,6 +344,14 @@ class QuestionBankQualityGate:
         blueprint: QuestionBankBlueprint,
         report: QuestionBankQualityReport,
     ) -> None:
+        if bank.module == "needs":
+            priority_questions = sum(1 for question in bank.questions if question.family == "priority")
+            report.add_metric("tradeoff_question_count", priority_questions)
+            report.add_metric("mixed_direction_question_count", 0)
+            if priority_questions == 0:
+                report.errors.append("Needs bank must include explicit priority tradeoff questions.")
+            return
+
         mixed_direction_questions = 0
         tradeoff_questions = 0
         for question in bank.questions:
@@ -369,6 +389,31 @@ class QuestionBankQualityGate:
         blueprint: QuestionBankBlueprint,
         report: QuestionBankQualityReport,
     ) -> None:
+        if bank.module == "needs":
+            absolute_counts = {label: 0 for label in blueprint.vector_labels}
+            priority_counts = {label: 0 for label in blueprint.vector_labels}
+            for question in bank.questions:
+                if question.family == "absolute" and question.dimension in absolute_counts:
+                    absolute_counts[question.dimension] += 1
+                if question.family == "priority":
+                    for option in question.options:
+                        index = max(range(len(option.vector)), key=lambda idx: option.vector[idx])
+                        priority_counts[blueprint.vector_labels[index]] += 1
+
+            report.add_metric("absolute_dimension_counts", absolute_counts)
+            report.add_metric("priority_dimension_counts", priority_counts)
+
+            if any(count == 0 for count in absolute_counts.values()):
+                report.errors.append(f"Needs bank is missing absolute coverage: {absolute_counts}.")
+            if any(count == 0 for count in priority_counts.values()):
+                report.errors.append(f"Needs bank is missing priority coverage: {priority_counts}.")
+
+            abs_min = min(absolute_counts.values())
+            abs_max = max(absolute_counts.values())
+            if abs_max > max(1, abs_min + 1):
+                report.errors.append(f"Needs absolute items are unbalanced across dimensions: {absolute_counts}.")
+            return
+
         dominant_counts = {label: 0 for label in blueprint.vector_labels}
         positive_counts = {label: 0 for label in blueprint.vector_labels}
         question_primary_counts = {label: 0 for label in blueprint.vector_labels}
@@ -431,10 +476,105 @@ class QuestionBankQualityGate:
         blueprint: QuestionBankBlueprint,
         report: QuestionBankQualityReport,
     ) -> None:
-        if bank.module == "shadow":
+        if bank.module == "needs":
+            QuestionBankQualityGate._check_needs_specific(bank, report)
+        elif bank.module == "shadow":
             QuestionBankQualityGate._check_shadow_specific(bank, report)
         elif bank.module == "eros":
             QuestionBankQualityGate._check_eros_specific(bank, report)
+
+    @staticmethod
+    def _check_needs_specific(bank: QuestionBank, report: QuestionBankQualityReport) -> None:
+        keyed_absolute_errors = 0
+        priority_structure_errors = 0
+        for question in bank.questions:
+            if question.family == "absolute":
+                if question.dimension is None:
+                    keyed_absolute_errors += 1
+                    continue
+                target_index = bank.metadata.vector_labels.index(question.dimension)
+                previous_value = -1.0
+                for option in question.options:
+                    positive_indexes = [index for index, value in enumerate(option.vector) if value > 0]
+                    if any(value < 0 for value in option.vector):
+                        keyed_absolute_errors += 1
+                        continue
+                    if positive_indexes not in ([], [target_index]):
+                        keyed_absolute_errors += 1
+                        continue
+                    current_value = option.vector[target_index]
+                    if current_value < previous_value:
+                        keyed_absolute_errors += 1
+                        continue
+                    previous_value = current_value
+
+            if question.family == "priority":
+                seen_dimensions: set[int] = set()
+                for option in question.options:
+                    positive_indexes = [index for index, value in enumerate(option.vector) if value > 0]
+                    if len(positive_indexes) != 1:
+                        priority_structure_errors += 1
+                        continue
+                    seen_dimensions.add(positive_indexes[0])
+                    if any(value < 0 for value in option.vector):
+                        priority_structure_errors += 1
+                if seen_dimensions != set(range(bank.vector_size)):
+                    priority_structure_errors += 1
+
+        report.add_metric("needs_keyed_absolute_errors", keyed_absolute_errors)
+        report.add_metric("needs_priority_structure_errors", priority_structure_errors)
+        if keyed_absolute_errors:
+            report.errors.append(
+                "Needs absolute items must be single-dimension keyed with monotonic response anchors."
+            )
+        if priority_structure_errors:
+            report.errors.append(
+                "Needs priority items must expose one option per SRME dimension without duplicate or mixed keys."
+            )
+
+        if len(bank.questions) >= 24:
+            rng = random.Random(42)
+            samples: list[tuple[float, float, float, float]] = []
+            for _ in range(300):
+                responses: dict[str, QuestionResponse] = {}
+                for question in bank.questions:
+                    if question.family == "priority":
+                        options = list(question.option_ids())
+                        best_option_id, worst_option_id = rng.sample(options, 2)
+                        responses[question.id] = QuestionResponse.best_worst(best_option_id, worst_option_id)
+                    else:
+                        responses[question.id] = QuestionResponse.single_choice(rng.choice(list(question.option_ids())))
+                component = QuestionnaireScorer.build_needs_component(bank, responses)
+                samples.append(
+                    (
+                        component.raw_safety,
+                        component.raw_resource,
+                        component.raw_resonance,
+                        component.raw_expansion,
+                    )
+                )
+
+            dispersion_metrics: dict[str, float] = {}
+            spread_metrics: dict[str, float] = {}
+            for index, label in enumerate(bank.metadata.vector_labels):
+                values = sorted(sample[index] for sample in samples)
+                mean = sum(values) / len(values)
+                variance = sum((value - mean) ** 2 for value in values) / len(values)
+                lower = values[int(len(values) * 0.1)]
+                upper = values[int(len(values) * 0.9)]
+                dispersion_metrics[label] = math.sqrt(variance)
+                spread_metrics[label] = upper - lower
+
+            report.add_metric("needs_dispersion_std", dispersion_metrics)
+            report.add_metric("needs_dispersion_p90_p10", spread_metrics)
+            if any(value < 0.11 for value in dispersion_metrics.values()):
+                report.errors.append(
+                    f"Needs bank is still too midpoint-compressed under Monte Carlo sampling: {dispersion_metrics}."
+                )
+            if any(value < 0.24 for value in spread_metrics.values()):
+                report.errors.append(
+                    f"Needs bank does not create enough score spread under Monte Carlo sampling: {spread_metrics}."
+                )
 
     @staticmethod
     def _check_shadow_specific(bank: QuestionBank, report: QuestionBankQualityReport) -> None:

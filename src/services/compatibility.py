@@ -41,6 +41,8 @@ class CompatibilityComparator:
         second_needs = CompatibilityComparator._needs(second)
         first_provision = CompatibilityComparator._provision(first)
         second_provision = CompatibilityComparator._provision(second)
+        first_priority = CompatibilityComparator._priority(first)
+        second_priority = CompatibilityComparator._priority(second)
 
         total_gap = 0.0
         for key, label in CompatibilityComparator.NEED_LABELS.items():
@@ -89,6 +91,21 @@ class CompatibilityComparator:
                             severity="positive",
                         )
                     )
+
+        first_priority_label = max(first_priority, key=first_priority.get)
+        second_priority_label = max(second_priority, key=second_priority.get)
+        if first_priority_label != second_priority_label:
+            notes.append(
+                CompatibilityItem(
+                    title="Різні пріоритети в trade-off ситуаціях",
+                    detail=(
+                        f"Коли неможливо підтримати все одночасно, перший профіль частіше ставить на перше місце "
+                        f"{CompatibilityComparator.NEED_LABELS[first_priority_label].lower()}, а другий — "
+                        f"{CompatibilityComparator.NEED_LABELS[second_priority_label].lower()}."
+                    ),
+                    severity="note",
+                )
+            )
 
         eros_gap = abs(first.eros.accelerator - second.eros.accelerator) + abs(first.eros.brake - second.eros.brake)
         if abs(first.eros.accelerator - second.eros.accelerator) >= 0.35:
@@ -183,4 +200,13 @@ class CompatibilityComparator:
             "resource": provision.resource_score,
             "resonance": provision.resonance_score,
             "expansion": provision.expansion_score,
+        }
+
+    @staticmethod
+    def _priority(user: UserProfile) -> dict[str, float]:
+        return {
+            "safety": user.needs.priority_safety,
+            "resource": user.needs.priority_resource,
+            "resonance": user.needs.priority_resonance,
+            "expansion": user.needs.priority_expansion,
         }

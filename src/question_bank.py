@@ -15,6 +15,8 @@ QUESTION_STATE_PREFIXES = {
     "shadow": "shadow_q",
     "eros": "eros_q",
 }
+QUESTION_RESPONSE_TYPES = {"single_choice", "best_worst"}
+NEEDS_QUESTION_FAMILIES = {"absolute", "priority"}
 
 
 class QuestionBankValidationError(ValueError):
@@ -35,6 +37,9 @@ class QuestionItem:
     description: str
     options: tuple[QuestionOption, ...]
     mode: str = "simple"
+    response_type: str = "single_choice"
+    family: str | None = None
+    dimension: str | None = None
 
     def option_ids(self) -> tuple[str, ...]:
         return tuple(option.id for option in self.options)
@@ -44,6 +49,25 @@ class QuestionItem:
             if option.id == option_id:
                 return option
         raise KeyError(f"Unknown option id '{option_id}' for question '{self.id}'.")
+
+    @property
+    def is_best_worst(self) -> bool:
+        return self.response_type == "best_worst"
+
+
+@dataclass(frozen=True)
+class QuestionResponse:
+    option_id: str | None = None
+    best_option_id: str | None = None
+    worst_option_id: str | None = None
+
+    @classmethod
+    def single_choice(cls, option_id: str) -> "QuestionResponse":
+        return cls(option_id=option_id)
+
+    @classmethod
+    def best_worst(cls, best_option_id: str, worst_option_id: str) -> "QuestionResponse":
+        return cls(best_option_id=best_option_id, worst_option_id=worst_option_id)
 
 
 @dataclass(frozen=True)
@@ -113,9 +137,14 @@ class QuestionBankRegistry:
         return self.banks[module]
 
 
-def question_state_key(module: str, question_id: str) -> str:
+def question_state_key(module: str, question_id: str, slot: str | None = None) -> str:
     prefix = QUESTION_STATE_PREFIXES[module]
-    return f"{prefix}_{question_id}"
+    base_key = f"{prefix}_{question_id}"
+    if slot is None:
+        return base_key
+    if slot not in {"best", "worst"}:
+        raise QuestionBankValidationError(f"Unsupported response slot '{slot}'.")
+    return f"{base_key}__{slot}"
 
 
 def _compute_fingerprint(payload: Mapping[str, Any]) -> str:
@@ -182,6 +211,19 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
         mode = str(raw_question.get("mode", "simple")).strip() or "simple"
         if mode not in {"simple", "extended"}:
             raise QuestionBankValidationError(f"Question '{question_id}' has unsupported mode '{mode}'.")
+        response_type = str(raw_question.get("response_type", "single_choice")).strip() or "single_choice"
+        if response_type not in QUESTION_RESPONSE_TYPES:
+            raise QuestionBankValidationError(
+                f"Question '{question_id}' has unsupported response_type '{response_type}'."
+            )
+        raw_family = raw_question.get("family")
+        family = str(raw_family).strip() if raw_family is not None else None
+        if family == "":
+            family = None
+        raw_dimension = raw_question.get("dimension")
+        dimension = str(raw_dimension).strip() if raw_dimension is not None else None
+        if dimension == "":
+            dimension = None
 
         options_raw = raw_question.get("options")
         if not isinstance(options_raw, list) or not options_raw:
@@ -230,6 +272,34 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
                 )
             )
 
+        if metadata.module == "needs":
+            if family not in NEEDS_QUESTION_FAMILIES:
+                raise QuestionBankValidationError(
+                    f"Needs question '{question_id}' must declare family in {sorted(NEEDS_QUESTION_FAMILIES)}."
+                )
+            if family == "absolute":
+                if response_type != "single_choice":
+                    raise QuestionBankValidationError(
+                        f"Needs question '{question_id}' in family 'absolute' must use response_type 'single_choice'."
+                    )
+                if dimension not in vector_labels:
+                    raise QuestionBankValidationError(
+                        f"Needs question '{question_id}' in family 'absolute' must declare a valid dimension."
+                    )
+            if family == "priority":
+                if response_type != "best_worst":
+                    raise QuestionBankValidationError(
+                        f"Needs question '{question_id}' in family 'priority' must use response_type 'best_worst'."
+                    )
+                if dimension is not None:
+                    raise QuestionBankValidationError(
+                        f"Needs question '{question_id}' in family 'priority' must not declare a fixed dimension."
+                    )
+        elif family is not None or dimension is not None:
+            raise QuestionBankValidationError(
+                f"Only needs questions may declare family/dimension metadata; found on '{question_id}'."
+            )
+
         questions.append(
             QuestionItem(
                 id=question_id,
@@ -241,6 +311,9 @@ def load_question_bank_from_payload(raw_bank: Mapping[str, Any]) -> QuestionBank
                 ),
                 options=tuple(options),
                 mode=mode,
+                response_type=response_type,
+                family=family,
+                dimension=dimension,
             )
         )
 

@@ -12,3 +12,7 @@ class RelationalNeedsComponent:
     adjusted_resource: float = 0.0
     adjusted_resonance: float = 0.0
     adjusted_expansion: float = 0.0
+    priority_safety: float = 0.0
+    priority_resource: float = 0.0
+    priority_resonance: float = 0.0
+    priority_expansion: float = 0.0

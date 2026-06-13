@@ -3,6 +3,7 @@ from __future__ import annotations
 import html
 import json
 import math
+import textwrap
 
 import streamlit as st
 
@@ -48,8 +49,17 @@ def _short_need_label(label: str) -> str:
     return label
 
 
+def _render_html_block(body: str) -> None:
+    normalized = textwrap.dedent(body).strip()
+    html_renderer = getattr(st, "html", None)
+    if callable(html_renderer):
+        html_renderer(normalized)
+        return
+    st.markdown(normalized, unsafe_allow_html=True)
+
+
 def render_app_styles() -> None:
-    st.markdown(
+    _render_html_block(
         """
         <style>
         :root {
@@ -194,13 +204,12 @@ def render_app_styles() -> None:
             }
         }
         </style>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
 def render_header(bank_fingerprint: str) -> None:
-    st.markdown(
+    _render_html_block(
         f"""
         <section class="crnas-hero">
           <h1>CRNAS: матриця партнерської сумісності</h1>
@@ -215,8 +224,7 @@ def render_header(bank_fingerprint: str) -> None:
             <span class="crnas-pill">Основний шлях: PDF Big Five + анкета</span>
           </div>
         </section>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
 
@@ -250,7 +258,10 @@ def _import_payload_state(raw_payload: dict) -> None:
 
 
 def render_profile_import_tab() -> None:
-    st.caption("Вставте збережений рядок профілю, якщо продовжуєте стару сесію або отримали профіль партнера.")
+    st.caption(
+        "Вставте збережений рядок профілю, якщо продовжуєте стару сесію або отримали профіль партнера. "
+        "Якщо рядок створений на старішій версії банку питань, анкету може знадобитися пройти заново."
+    )
     encoded_payload = st.text_area(
         "Рядок профілю",
         key="profile_transport_input",
@@ -293,7 +304,7 @@ def render_profile_export_tab(bank_fingerprint: str) -> None:
         "Поточний рядок профілю",
         value=encoded_payload,
         height=120,
-        help="Цей рядок можна зберегти у нотатнику або надіслати іншій людині для порівняння.",
+        help="Цей рядок можна зберегти у нотатнику або надіслати іншій людині для порівняння. Він сумісний лише з поточною версією банку питань.",
     )
 
     json_payload = json.dumps(
@@ -455,6 +466,24 @@ def _render_bar_rows(scores: dict[str, float]) -> str:
     return "\n".join(rows)
 
 
+def _render_priority_rows(scores: dict[str, float], descriptions: dict[str, str]) -> str:
+    rows = []
+    ordered = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    for index, (label, value) in enumerate(ordered, start=1):
+        short_label = _short_need_label(label)
+        description = descriptions.get(label, "")
+        rows.append(
+            f"""
+            <div class="crnas-note">
+              <strong>#{index} {html.escape(str(label))}</strong><br />
+              <span>{html.escape(description)}</span><br />
+              <span><strong>Raw priority points:</strong> {value:+.0f}</span>
+            </div>
+            """
+        )
+    return "\n".join(rows)
+
+
 def _radar_svg(scores: dict[str, float]) -> str:
     values = {
         _short_need_label(label): max(0.0, min(1.0, float(value)))
@@ -491,57 +520,76 @@ def _radar_svg(scores: dict[str, float]) -> str:
 def render_result_dashboard(manual: dict) -> None:
     primary_label, primary_value = manual["primary_driver"]
     secondary_label, secondary_value = manual["secondary_driver"]
+    priority_label, priority_points = manual["priority_top"]
+    priority_secondary_label, priority_secondary_points = manual["priority_secondary"]
 
     st.success("Розрахунок завершено.")
     st.caption(
-        "Одиночний профіль є self-description у межах цієї анкети. Найкорисніша інтерпретація з'являється "
-        "при порівнянні з профілем іншої людини; відсотки не означають percentile або середнє по популяції."
+        "Профіль складається з двох шарів: інтенсивність показує, наскільки кожна потреба вам потрібна, "
+        "а trade-off пріоритет показує, що найчастіше перемагає, коли неможливо підтримати все одночасно. "
+        "Відсотки тут не є percentile по людях."
     )
 
-    st.markdown(
+    _render_html_block(
         f"""
         <div class="crnas-card-grid">
           <div class="crnas-card">
-            <span>Домінантний драйвер</span>
+            <span>Найвища інтенсивність потреби</span>
             <strong>{html.escape(str(primary_label))}</strong>
             <div class="crnas-kpi">{_pct(primary_value)}%</div>
           </div>
           <div class="crnas-card">
-            <span>Вторинний драйвер</span>
+            <span>Друга за інтенсивністю</span>
             <strong>{html.escape(str(secondary_label))}</strong>
             <div class="crnas-kpi" style="color: var(--crnas-warm);">{_pct(secondary_value)}%</div>
           </div>
+          <div class="crnas-card">
+            <span>Топ-пріоритет у trade-off</span>
+            <strong>{html.escape(str(priority_label))}</strong>
+            <div class="crnas-kpi">{priority_points:+.0f}</div>
+          </div>
+          <div class="crnas-card">
+            <span>Другий trade-off пріоритет</span>
+            <strong>{html.escape(str(priority_secondary_label))}</strong>
+            <div class="crnas-kpi" style="color: var(--crnas-warm);">{priority_secondary_points:+.0f}</div>
+          </div>
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
 
     chart_col, needs_col = st.columns((0.9, 1.25))
     with chart_col:
-        st.markdown(_radar_svg(manual["scores"]), unsafe_allow_html=True)
+        _render_html_block(_radar_svg(manual["scores"]))
     with needs_col:
-        st.markdown(
+        _render_html_block(
             f"""
             <div class="crnas-bars">
-              <strong>Профіль потреб</strong>
+              <strong>Інтенсивність потреб</strong>
               {_render_bar_rows(manual["scores"])}
             </div>
-            """,
-            unsafe_allow_html=True,
+            """
         )
 
+    st.write("#### Пріоритет у trade-off ситуаціях")
+    _render_html_block(
+        f"""
+        <div class="crnas-bars">
+          <strong>Коли одночасно закрити все неможливо, найчастіше в пріоритет виходить:</strong>
+          {_render_priority_rows(manual["priority_scores"], manual["need_descriptions"])}
+        </div>
+        """
+    )
+
     st.write("#### Що ви приносите у стосунки")
-    st.markdown(
+    _render_html_block(
         f"""
         <div class="crnas-bars">
           {_render_bar_rows(manual["provision_scores"])}
         </div>
-        """,
-        unsafe_allow_html=True,
+        """
     )
-    st.markdown(
-        f'<div class="crnas-note"><strong>Суперсила:</strong> {html.escape(str(manual["superpower"][0]))}</div>',
-        unsafe_allow_html=True,
+    _render_html_block(
+        f'<div class="crnas-note"><strong>Суперсила:</strong> {html.escape(str(manual["superpower"][0]))}</div>'
     )
 
     notes_tab, neuro_tab = st.tabs(["Операційні примітки", "Нейродивергентний контекст"])

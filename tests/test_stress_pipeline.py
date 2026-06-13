@@ -7,27 +7,39 @@ from src.domain.professional import ProfessionalComponent
 from src.domain.psychometrics import PsychometricsComponent
 from src.enums import HollandCode
 from src.profile import UserProfile
-from src.question_bank import QuestionBank, get_question_bank_registry
+from src.question_bank import QuestionBank, get_question_bank_registry, QuestionResponse
 from src.services.adjustment import NeedsAdjustmentService
 from src.services.reporting import ReportGenerator
 from src.services.scoring import QuestionnaireScorer
 
 
-def _cycled_responses(bank: QuestionBank) -> dict[str, str]:
-    return {
-        question.id: question.options[index % len(question.options)].id
-        for index, question in enumerate(bank.questions)
-    }
+def _cycled_responses(bank: QuestionBank) -> dict[str, str | QuestionResponse]:
+    responses: dict[str, str | QuestionResponse] = {}
+    for index, question in enumerate(bank.questions):
+        if question.is_best_worst:
+            best_idx = index % len(question.options)
+            worst_idx = (index + 1) % len(question.options)
+            responses[question.id] = QuestionResponse.best_worst(
+                question.options[best_idx].id,
+                question.options[worst_idx].id
+            )
+        else:
+            responses[question.id] = question.options[index % len(question.options)].id
+    return responses
 
 
-def _random_responses(bank: QuestionBank, rng: Random) -> dict[str, str]:
-    return {
-        question.id: rng.choice(question.options).id
-        for question in bank.questions
-    }
+def _random_responses(bank: QuestionBank, rng: Random) -> dict[str, str | QuestionResponse]:
+    responses: dict[str, str | QuestionResponse] = {}
+    for question in bank.questions:
+        if question.is_best_worst:
+            best_opt, worst_opt = rng.sample(question.options, 2)
+            responses[question.id] = QuestionResponse.best_worst(best_opt.id, worst_opt.id)
+        else:
+            responses[question.id] = rng.choice(question.options).id
+    return responses
 
 
-def _build_user(needs_responses: dict[str, str], shadow_responses: dict[str, str], eros_responses: dict[str, str]) -> UserProfile:
+def _build_user(needs_responses: dict[str, str | QuestionResponse], shadow_responses: dict[str, str], eros_responses: dict[str, str]) -> UserProfile:
     registry = get_question_bank_registry()
     psycho = PsychometricsComponent.from_high_level_scores(50, 50, 50, 50, 50)
     professional = ProfessionalComponent(

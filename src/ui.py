@@ -257,21 +257,37 @@ def _render_facet_editor(psycho: PsychometricsComponent) -> None:
             _facet_slider("Cautiousness", psycho.conscientiousness, "deliberation", "Обережність", "cons")
 
 
-def _render_bank_questions(bank: QuestionBank) -> tuple[dict[str, str], list[str]]:
+def _render_bank_questions(bank: QuestionBank):
     for question in bank.questions:
         st.markdown(f"**{question.question}**")
         if question.description:
             st.caption(question.description)
 
         option_lookup = {option.id: option for option in question.options}
-        st.radio(
-            "Ваша відповідь:",
-            list(option_lookup.keys()),
-            index=None,
-            format_func=lambda option_id, options=option_lookup: options[option_id].text,
-            key=question_state_key(bank.module, question.id),
-            label_visibility="collapsed",
-        )
+        if question.is_best_worst:
+            st.radio(
+                "Найважливіше для вас:",
+                list(option_lookup.keys()),
+                index=None,
+                format_func=lambda option_id, options=option_lookup: options[option_id].text,
+                key=question_state_key(bank.module, question.id, "best"),
+            )
+            st.radio(
+                "Найменш критичне для вас:",
+                list(option_lookup.keys()),
+                index=None,
+                format_func=lambda option_id, options=option_lookup: options[option_id].text,
+                key=question_state_key(bank.module, question.id, "worst"),
+            )
+        else:
+            st.radio(
+                "Ваша відповідь:",
+                list(option_lookup.keys()),
+                index=None,
+                format_func=lambda option_id, options=option_lookup: options[option_id].text,
+                key=question_state_key(bank.module, question.id),
+                label_visibility="collapsed",
+            )
         st.divider()
 
     response_state = collect_bank_responses(bank, st.session_state)

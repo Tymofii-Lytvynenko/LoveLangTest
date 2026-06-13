@@ -23,7 +23,7 @@ def _build_needs_bank(question_count: int) -> dict:
         "metadata": {
             "bank_id": "test-needs",
             "version": "1.0.0",
-            "module": "needs",
+            "module": "custom",
             "authoring_instructions": "Test instructions",
             "vector_labels": ["safety", "resource", "resonance", "expansion"],
         },
